@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-/data/
+data/
 
 # Mac OS-specific storage files
 .DS_Store
