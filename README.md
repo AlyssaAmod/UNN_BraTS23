@@ -10,7 +10,7 @@ Project Structure
     │ 
     ├── scripts
     │   ├── data_preparation       <- read in dataset, extract header info, set up labels e.t.c. custom Dataset class
-    │   ├── data_preprocessing     <- crop unnecessary background, ...
+    │   ├── data_preprocessing     <- crop unnecessary background, convert sub-region labels ...?
     │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, data ready to be fed into model
     │  
     ├── reports                   <- contains all generated graphics for reporting
