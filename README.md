@@ -4,7 +4,7 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 Project Structure
 ------------
 
-    ├── README.md          <- The top-level README for developers using this project.
+    ├── README.md                  <- The top-level README for developers using this project.
     ├── notebooks
     │   └── data-exploration       <- perform initial exploratory data analysis
     │ 
