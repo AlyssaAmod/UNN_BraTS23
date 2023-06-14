@@ -43,7 +43,7 @@ class MRIDataset(Dataset):
         # Return the amount of images in this set
         return len(self.imgs)
     
-    def __getitem__(self, idx):
+    def __getitem__(self):
 
         if self.transform is not None: # Apply transformations
             img, mask = self.transform((img, mask))
