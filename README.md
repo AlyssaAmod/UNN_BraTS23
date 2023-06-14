@@ -1,7 +1,9 @@
 # UNN_BraTS23
 MICCAI 2023 Brain Tumour Segmentation Challenge
+## Challenge Outline
 
-Project Structure
+
+## Project Structure
 ------------
 
     ├── README.md                  <- The top-level README for developers using this project.
@@ -9,10 +11,92 @@ Project Structure
     │   └── data-exploration       <- perform initial exploratory data analysis
     │ 
     ├── scripts
-    │   ├── data_preparing         <- read in dataset, extract header info, set up labels e.t.c.
-    │   ├── data_preprocessing     <- crop unnecessary background, ...
+    │   ├── data_preparation       <- read in dataset, extract header info, set up labels e.t.c. custom Dataset class
+    │   ├── data_preprocessing     <- crop unnecessary background, convert sub-region labels ...?
     │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, data ready to be fed into model
     │  
     ├── reports                   <- contains all generated graphics for reporting
 
 ------------
+
+## Folder & File Structure Requirements
+Refer to Challenge page on Synapse for submission requirements
+
+### Training & Validation Data
+Total file: Training data
+- BraTS glioma dataset = 1251
+- BraTS SSA dataset = 43
+
+All data files are labelled as follows in the new data release:
+- BraTS-GLI-#####-00#
+- BraTS-SSA-#####-00#
+
+To run the code on your local machine, or via Compute Canada, folder structure should be set up as follows:
+
+- source data provided: xxx/data/train/Nifty (TBC)
+- source data provided: xxx/data/val/Nifty (TBC)
+- Mapping file: xxx/data/BraTS2023_2017_GLI_Mapping.xlsx
+
+data preparation outputs: TBD
+
+data pre-processing outputs: TBD
+
+segmentation masks generated: TBD
+
+## Challenge Overview
+### Data
+    - data sets from adult populations collected through a collaborative network of imaging centres in Africa
+    - collection of pre-operative glioma data comprising of multi-parametric (mpMRI) routine clinical scans acquired as part of standard clinical care from multiple institutions and different scanners using conventional brain tumor imaging protocols
+    - differences in imaging systems and variations in clinical imaging protocols = vastly heterogeneous image quality
+    - ground truth annotations were approved by expert neuroradiologists and reviewed by board-certified radiologists with extensive experience in the field of neuro-oncology
+    **training (70%), validation (10%), testing (20%)**
+    - training data provided with associated ground truth labels, and validation data without any associated ground truth
+    - image volumes of:
+        - T1-weighted **(T1)**
+        - post gadolinium (Gd) contrast T1-weighted **(T1Gd)**
+        - T2-weighted **(T2)**
+        - T2 Fluid Attenuated Inversion Recovery **(T2-FLAIR)**
+    
+### Standardised BraTS **pre-processing workflow** used
+    - identical with pipeline from BraTS2017-2022 - publicly available
+    - conversion of DICOM to files to NIfTI file format --  strips accompanying metadata from the images and removes all Protected Health Information from DICOM headers
+    - cor-registration to the same anatomical template (SRI24)
+     - resampling to uniform isotropic resolution (1mm^2)
+     - skull stripping (uses DL approach) --  mitigates potential facial reconstruction/recognition of the patient
+        
+### Generation of **ground truth labels**
+    - volumes segmented using STAPLE fusion of previous top-ranked BraTS algorithms (nnU-Net, DeepScan and DeepMedic)
+    - segmented images refined manually by volunteer trained radiology experts of varying rank and experience
+    - then two senior attending board-certified radiologists with 5 or more years experience reviewed the segmentations
+    - iterative process until the approvers found the refined tumor sub-region segmentations accceptable for public release and challenge conduction
+    - finally approved by experienced board-certified attending neuro-radiologists with more than 5 years experience in interpreting glioma brain MRI
+        
+    - **sub-regions** -- these are image-based and do not reflect strict biologic entities
+        - enhancing tumor (ET)
+        - non-enhancing tumor core (NETC)
+        - surrounding non-enhancing flair hyperintensity (SNFH)
+        
+### Important information
+#### Training & Val
+    - training data has ground truths available
+    - validation data (released 3 weeks after training data) does not have any ground truth
+    - ***NB: challenge participants can supplement the data set with additional public and/or private glioma MRI data for training algorithms***
+        - supplemental data set must be explicitly and thoroughly described in the methods of submitted manuscripts
+        - required to report results using only the BraTS2023 glioma data and results that include the supplemental data and discuss potential result differences
+    - for submission participants are required to package their developed approach in an MLCube container following provided in the Synapse platform - Cube containers are automatically generated by GaNDLF and will be used to evaluate all submissions through the MedPerf platform
+    
+#### Evaluation metrics
+    - Dice Similarity Coefficient  
+    - 95% Hausdorff distance (as opposed to standard HD in order to avoid outliers having too much weight)
+    - precision (to complement sensitivity)
+
+#### Other
+    - submitted algorithms will be ranked based on the generated metric results on the test cases by computing the summation of their ranks across the average of the metrics described above as a univariate overall summary measure
+    - outcome will be plotted via an augmented version of radar plot - to visualise the results
+    - missing results on test cases or if an algorithm fails to produce a result metric for a specific test case the metric will be set to its worst possible value (e.g. 0 for DSC) 
+    - uncertainties in rankings will be assessed using permutational analyses“Performance for the segmentation task will be assessed based on relative performance of each team on each tumor tissue class and for each segmentation measure
+    - multiple submissions to the online evaluation platforms will be allowed 
+    - top ranked teams in validation phase will be invited to prepare their slides for a short oral presentation of their method during the BraTS challenge at MICCAI 2023
+    - “all participants will be evaluated and ranked on the same unseen testing data, which will not be made available to the participants, after uploading their containerized method in the evaluation platforms
+    - final top ranked teams will be announced at MICCAI 2023 (monetary prizes)
+    - participating African teams with best rank will receive Lacuna Equity & Health Prizes (limited to BraTS-Africa BrainHack teams)
