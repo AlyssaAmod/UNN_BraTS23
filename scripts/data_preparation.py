@@ -52,7 +52,7 @@ class MRIDataset(Dataset):
         img = torch.from_numpy(img)
         mask = torch.from_numpy(mask)
 
-        return img, lbl
+        return img, mask
 
 data_folders = os.listdir('/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData/')
 print(data_folders)
