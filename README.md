@@ -11,9 +11,9 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
     │   └── data-exploration       <- perform initial exploratory data analysis
     │ 
     ├── scripts
-    │   ├── data_preparation       <- read in dataset, extract header info, set up labels e.t.c. custom Dataset class
+    │   ├── data_preparation       <- custom Dataset class, read in dataset, extract header info e.t.c.
     │   ├── data_preprocessing     <- crop unnecessary background, convert sub-region labels ...?
-    │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, data ready to be fed into model
+    │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, including any transforms --> data ready to be fed into model
     │  
     ├── reports                   <- contains all generated graphics for reporting
 
