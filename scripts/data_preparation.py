@@ -57,4 +57,4 @@ class MRIDataset(Dataset):
 data_folders = os.listdir('/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData/')
 print(data_folders)
 
-print(MRIDataset(data_folders))
+MRIDataset(data_folders)
