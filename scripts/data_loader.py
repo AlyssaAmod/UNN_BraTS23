@@ -1,8 +1,26 @@
 from torchvision import transforms
+import torch
+import os
 import torch.utils.data as data_utils
 from data_preparation import MRIDataset
 from sklearn.model_selection import train_test_split
 
+def main():
+    # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
+
+    data_dir = '/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData/'
+    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
+
+    batch_size = 8
+
+    dataloaders = load_data(data_folders, batch_size)
+    print(dataloaders)
+    training_set = dataloaders['train']
+
+    for img, label in training_set:
+        print(img.shape)
+        print(label.shape)
+    
 # MAIN FUNCTION TO USE
 def load_data(data_folders, batch_size):
     '''
@@ -15,6 +33,9 @@ def load_data(data_folders, batch_size):
 
     # Split data files
     train_files, val_files, test_files = split_data(data_folders, seed=42) # seed for reproducibiilty to get same split
+    
+    print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}\nNumber of test: files {len(test_files)}")
+    
     # Get data transforms
     data_transforms = define_transforms()
 
@@ -31,6 +52,8 @@ def load_data(data_folders, batch_size):
         'test': data_utils.DataLoader(image_datasets['test'], batch_size=batch_size, shuffle=True)
     }
 
+    return dataloaders
+
 #! TO DO: we must fill in the transforms we want to apply
 def define_transforms():
     # Initialise data transforms
@@ -39,7 +62,7 @@ def define_transforms():
             # transforms.Resize(INPUT_SIZE),
             # transforms.RandomHorizontalFlip(),
             # transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # inception
+            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # inception
         ]),
         'val': transforms.Compose([
             # transforms.Resize(INPUT_SIZE),
@@ -55,7 +78,7 @@ def define_transforms():
 
     return data_transforms
 
-def split_data(data_folders, splt: list, seed):
+def split_data(data_folders, seed):
     '''
     Function to split dataset into train/val/test splits, given all avilable data.
 
@@ -69,3 +92,5 @@ def split_data(data_folders, splt: list, seed):
 
     return train_files, val_files, test_files
 
+if __name__=='__main__':
+    main()
