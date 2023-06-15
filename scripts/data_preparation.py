@@ -9,13 +9,13 @@ class MRIDataset(Dataset):
     # Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
     def __init__(self, data_folders, transform=None):
         self.data_folders = data_folders # path for each data folder in the set
+        self.transform = transform
 
-        self.imgs = {} # store images to load (paths)
-        self.lbls = {} # store corresponding labels (paths)
+        self.imgs = [] # store images to load (paths)
+        self.lbls = [] # store corresponding labels (paths)
 
         # Load the images and corresponding labels
         for i, img_folder in enumerate(data_folders):
-            print(img_folder)
             modalities = []
             for file in os.listdir(img_folder):
                 # Check folder contents
@@ -31,31 +31,27 @@ class MRIDataset(Dataset):
             # Save images containing all modalities
             self.imgs.append(modalities)
 
-            # apply preprocessing
-            self.imgs, self.lbls = [preprocess_data(v) for v in enumerate(self.imgs, self.lbls)]
-
     def __len__(self):
         # Return the amount of images in this set
         return len(self.imgs)
     
     def __getitem__(self, idx):
-        # Loads and returns sample
-
         # Load files
-        data = [nib.load(nib.load(img_path) for img_path in self.imgs[idx])] # list of modalities
-        tnsrs = [torch.from_numpy(mod) for mod in data] # convert to tensors
+        data = [nib.load(img_path).get_fdata() for img_path in self.imgs[idx]] # list of modalities
+        mask = nib.load(self.lbls[idx]).get_fdata()
+
+        # apply preprocessing
+        data, mask = preprocess_data(data, mask)
+        
+        # Convert to tensor
+        tnsrs = [torch.from_numpy(mod) for mod in data]
+        mask = torch.from_numpy(mask)
+
         # concatenate modalitites to make tensor
         img = torch.stack(tnsrs) # 4, 240, 240, 155
-        print(img.shape)
-
-        mask = nib.load(self.lbls[idx])
-        mask = torch.from_numpy(mask) # convert to tensor
 
         if self.transform is not None: # Apply transformations
-            img, mask = self.transform((img, mask))
+            img = self.transform(img)
+            mask = self.transform(mask)
         
         return img, mask
-
-data_folders = os.listdir('/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData/')
-
-MRIDataset(data_folders)

@@ -1,14 +1,21 @@
 import numpy as np
 import torch
+import sys
 
 
-def preprocess(image, mask):
+def preprocess_data(img, mask):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
     corresponding ground truth image.
 
     Returns: preprocessed image (not yet converted to tensor)
     '''
+    # img is still a list of arrays of the 4 modalities from data files
+    # mask is 3d array
+
+    # return img as list of arrays, and mask as before
+    return img, mask
+    
 
 def crop_background(img, mask):
     '''
