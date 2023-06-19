@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
 from data_preprocessing import preprocess_data
+import torch.io
 
 class MRIDataset(Dataset):
     # Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
@@ -41,7 +42,7 @@ class MRIDataset(Dataset):
         mask = nib.load(self.lbls[idx]).get_fdata()
 
         # apply preprocessing
-        data, mask = preprocess_data(data, mask)
+        # data, mask = preprocess_data(data, mask)
         
         # Convert to tensor
         tnsrs = [torch.from_numpy(mod) for mod in data]

@@ -2,7 +2,7 @@ from torchvision import transforms
 import torch
 import os
 import torch.utils.data as data_utils
-from data_preparation import MRIDataset
+from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
 
 def main():
