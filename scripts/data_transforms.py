@@ -6,6 +6,12 @@ def define_transforms():
     # Initialise data transforms
     data_transforms = {
         'train': transforms.Compose([
+            transforms.RandomRotation((0, 180)),
+            transforms.RandomHorizontalFlip(p=0.3),
+            transforms.RandomVerticalFlip(p=0.3),
+            transforms.GaussianBlur(kernel_size, sigma=(0.5, 1.5)),
+            tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
+            transforms.ColorJitter(brightness=(0.8, 1.2))
             # transforms.Resize(INPUT_SIZE),
             # transforms.RandomHorizontalFlip(),
             # transforms.ToTensor(),
