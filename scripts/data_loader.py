@@ -41,7 +41,7 @@ def load_data(data_folders, batch_size):
     data_transforms = define_transforms()
 
     image_datasets = {
-    'train': MRIDataset(train_files, transform=data_transforms['train']),
+    'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['trainSSA']),
     'val': MRIDataset(val_files,transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }

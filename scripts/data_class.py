@@ -8,9 +8,10 @@ import torch.io
 
 class MRIDataset(Dataset):
     # Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
-    def __init__(self, data_folders, transform=None):
+    def __init__(self, data_folders, transform=None, SSAtransform=None):
         self.data_folders = data_folders # path for each data folder in the set
         self.transform = transform
+        self.SSAtransform = SSAtransform
 
         self.imgs = [] # store images to load (paths)
         self.lbls = [] # store corresponding labels (paths)
@@ -18,6 +19,8 @@ class MRIDataset(Dataset):
         # Load the images and corresponding labels
         for i, img_folder in enumerate(data_folders):
             modalities = []
+            # Check if the current file is from the SSA dataset
+            self.SSA = True if 'SSA' in img_folder else False
             for file in os.listdir(img_folder):
                 # Check folder contents
                 if all(substring not in file for substring in ["t1c", "t1n", "t2f", "t2w", "seg"]):
@@ -29,7 +32,7 @@ class MRIDataset(Dataset):
                     else:
                         # Save image modalities to list (file paths)
                         modalities.append(os.path.join(img_folder, file))
-            # Save images containing all modalities
+            # Save image paths containing all modalities
             self.imgs.append(modalities)
 
     def __len__(self):
@@ -40,9 +43,6 @@ class MRIDataset(Dataset):
         # Load files
         data = [nib.load(img_path).get_fdata() for img_path in self.imgs[idx]] # list of modalities
         mask = nib.load(self.lbls[idx]).get_fdata()
-
-        # apply preprocessing
-        # data, mask = preprocess_data(data, mask)
         
         # Convert to tensor
         tnsrs = [torch.from_numpy(mod) for mod in data]
@@ -54,5 +54,8 @@ class MRIDataset(Dataset):
         if self.transform is not None: # Apply transformations
             img = self.transform(img)
             mask = self.transform(mask)
+        if self.SSA == True and self.SSAtransform is not None: # Apply transformation to SSA data
+            img = self.SSAtransform(img)
+            # mask = self.SSAtransform(mask)
         
         return img, mask
