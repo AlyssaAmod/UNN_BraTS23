@@ -1,7 +1,12 @@
 # UNN_BraTS23
 MICCAI 2023 Brain Tumour Segmentation Challenge
-## Challenge Outline
+## Running these scripts
 
+1. data_preprocessing : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
+
+2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
+
+3. training script?
 
 ## Project Structure
 ------------
@@ -11,8 +16,9 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
     │   └── data-exploration       <- perform initial exploratory data analysis
     │ 
     ├── scripts
-    │   ├── data_preparation       <- custom Dataset class, read in dataset, extract header info e.t.c.
-    │   ├── data_preprocessing     <- crop unnecessary background, convert sub-region labels ...?
+    │   ├── data_preprocessing     <- read in raw dataset, extract header info, crop unnecessary background, convert sub-region labels e.t.c, and store preprocessed data
+    |   ├── data_transforms        <- defines different transforms used for each set
+    |   ├── data_class             <- contains custom Dataset class
     │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, including any transforms --> data ready to be fed into model
     │  
     ├── reports                    <- contains all generated graphics for reporting
