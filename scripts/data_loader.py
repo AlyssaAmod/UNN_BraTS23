@@ -1,9 +1,9 @@
-from torchvision import transforms
 import torch
 import os
 import torch.utils.data as data_utils
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
+from data_transforms import define_transforms
 
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
@@ -14,12 +14,13 @@ def main():
     batch_size = 8
 
     dataloaders = load_data(data_folders, batch_size)
-    print(dataloaders)
-    training_set = dataloaders['train']
 
-    for img, label in training_set:
-        print(img.shape)
-        print(label.shape)
+    # print(dataloaders)
+    # training_set = dataloaders['train']
+
+    # for img, label in training_set:
+    #     print(img.shape)
+    #     print(label.shape)
     
 # MAIN FUNCTION TO USE
 def load_data(data_folders, batch_size):
@@ -53,30 +54,6 @@ def load_data(data_folders, batch_size):
     }
 
     return dataloaders
-
-#! TO DO: we must fill in the transforms we want to apply
-def define_transforms():
-    # Initialise data transforms
-    data_transforms = {
-        'train': transforms.Compose([
-            # transforms.Resize(INPUT_SIZE),
-            # transforms.RandomHorizontalFlip(),
-            # transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # inception
-        ]),
-        'val': transforms.Compose([
-            # transforms.Resize(INPUT_SIZE),
-            # transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # inception
-        ]),
-        'test' : transforms.Compose([
-            # transforms.Resize(INPUT_SIZE),
-            # transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # inception
-        ])
-    }
-
-    return data_transforms
 
 def split_data(data_folders, seed):
     '''
