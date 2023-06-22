@@ -10,10 +10,15 @@ def define_transforms():
             transforms.RandomHorizontalFlip(p=0.3),
             transforms.RandomVerticalFlip(p=0.3)
         ]),
-        'trainSSA': transforms.Compose([
+        'fakeSSA': transforms.Compose([
+            # one of?
+            # these arent applied with a probability?
             transforms.GaussianBlur(kernel_size=(21, 21), sigma=(0.5, 1.5)),
             tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
-            transforms.ColorJitter(brightness=(0.8, 1.2))
+            transforms.ColorJitter(brightness=(0.8, 1.2)),
+            tio.transforms.RandomMotion(num_transforms=3, image_interpolation='nearest'),
+            tio.transforms.RandomBiasField(coefficients=1),
+            tio.transforms.RandomGhosting(intensity=1.5)
         ]),
         'val': transforms.Compose([
             # transforms.Resize(INPUT_SIZE),
