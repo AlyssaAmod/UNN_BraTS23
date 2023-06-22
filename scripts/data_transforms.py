@@ -11,6 +11,8 @@ def define_transforms():
             transforms.RandomVerticalFlip(p=0.3)
         ]),
         'fakeSSA': transforms.Compose([
+            # one of?
+            # these arent applied with a probability?
             transforms.GaussianBlur(kernel_size=(21, 21), sigma=(0.5, 1.5)),
             tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
             transforms.ColorJitter(brightness=(0.8, 1.2)),
