@@ -10,7 +10,7 @@ def define_transforms():
             transforms.RandomHorizontalFlip(p=0.3),
             transforms.RandomVerticalFlip(p=0.3)
         ]),
-        'trainSSA': transforms.Compose([
+        'fakeSSA': transforms.Compose([
             transforms.GaussianBlur(kernel_size=(21, 21), sigma=(0.5, 1.5)),
             tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
             transforms.ColorJitter(brightness=(0.8, 1.2))

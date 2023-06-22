@@ -15,12 +15,12 @@ def main():
 
     dataloaders = load_data(data_folders, batch_size)
 
-    # print(dataloaders)
-    # training_set = dataloaders['train']
+    print(dataloaders)
+    training_set = dataloaders['train']
 
-    # for img, label in training_set:
-    #     print(img.shape)
-    #     print(label.shape)
+    for img, label in training_set:
+        print(img.shape)
+        print(label.shape)
     
 # MAIN FUNCTION TO USE
 def load_data(data_folders, batch_size):
@@ -39,9 +39,9 @@ def load_data(data_folders, batch_size):
     
     # Get data transforms
     data_transforms = define_transforms()
-
+    # fakeSSA transforms are applied to GLI data to worse their image quality
     image_datasets = {
-    'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['trainSSA']),
+    'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
     'val': MRIDataset(val_files,transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }
