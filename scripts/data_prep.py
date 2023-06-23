@@ -26,46 +26,19 @@ Add noise defs for fake SSA data in an if
 
 ## Import key libraries
 import os
-import random
-import json
 from glob import glob
+import json
 import time
 from subprocess import call
 from joblib import Parallel, delayed
+import random
+from utils import get_main_args
+from utils import extract_imagedata
+
 import nibabel as nib
 import numpy as np
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-def main():
-    args = parser.parse_args()
-    
-    print(f"Preparing BraTS23 dataset from: {args.data}")
-    start = time.time()
-    # subj_dir = load_dir(args.data)
-    run_parallel(prepare_nifty(args.data, args.modal))
-    
-    print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    file_prep(args.data, args.modal, args.exec_mode)
-    print("Image - label pairs created")
-    end = time.time()
-    print(f"Data ready for preprocessing. Total time taken: {(end - start):.2f}")
-    
-# Create args for pre-proc
-parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-#For file loading etc
-parser.add_argument("--data", type=str, default="/data", help="Path to data directory")
-parser.add_argument("--modal", tye=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
-#For preprocessing stacked nifty files
-parser.add_argument("--results", type=str, default="/data", help="Path for saving output directory")
-parser.add_argument(
-    "--exec_mode",
-    type=str,
-    default="training",
-    choices=["training", "val", "test"],
-    help="Mode for data preprocessing",
-)
-parser.add_argument("--ohe", action="store_true", help="Add one-hot-encoding for foreground voxels (voxels > 0)")
-parser.add_argument("--verbose", action="store_true")
-parser.add_argument("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")
+import torch
+import torchio as tio
 
 ## ***** ADDED INTO ONE FUNCTION CALL --> CHECK WITH ALEX AND DELETE COMMENTED LINES *****
 # # Read in the dataset folder structure
@@ -83,14 +56,6 @@ parser.add_argument("--n_jobs", type=int, default=-1, help="Number of parallel j
 
 # def load_nifty(directory, subjID, m):
 #     return nib.load(os.path.join(data_dir + subjID, subjID + f"-{m}.nii.gz"))
-
-# Better to have fx for this than typing each time --> MAY WANT TO MOVE TO A UTILS.py
-def get_data(nifty, dtype="int16"):
-    if dtype == "int16":
-        data = np.abs(nifty.get_fdata().astype(np.int16))
-        data[data == -32768] = 0
-        return data
-    return nifty.get_fdata().astype(np.uint8)
 
 def prepare_nifty(directory, modalities):
     """ 
@@ -123,7 +88,7 @@ def prepare_nifty(directory, modalities):
         img_shapes[f'{mname}']=img_modality[idx].shape
     affine, header = img_modality[-1].affine, img_modality[-1].header
     res = header.get_zooms()
-    imgs = np.stack([get_data(img_modality[m]) for m in modalities], axis=-1)
+    imgs = np.stack([extract_imagedata(img_modality[m]) for m in modalities], axis=-1)
     imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
     nib.save(imgs, os.path.join(subj_dir + "-stk.nii.gz"))
 
@@ -131,7 +96,7 @@ def prepare_nifty(directory, modalities):
             #seg = load_nifty(data_dir, subjID, "seg")
             seg = nib.load(os.path.join(subj_dir, subjID + "-seg.nii.gz"))
             seg_affine, seg_header = seg.affine, seg.header
-            seg = get_data(seg, "unit8")
+            seg = extract_imagedata(seg, "unit8")
             #seg[vol == 4] = 3 --> not sure what this does yet
             seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
             nib.save(seg, os.path.join(subj_dir + "-lbl.nii.gz"))
@@ -180,7 +145,7 @@ def file_prep(data_dir, modalities, train):
         for f in files:
             if any(ignor_str in f for ignor_str in modalities):
                 continue
-            if "-seg" in f:
+            if "-lbl" in f:
                 labels.append(f)
                 call(f"cp {f} {lbl_path}", shell=True)
             else:
@@ -202,13 +167,13 @@ def file_prep(data_dir, modalities, train):
         "modality": modality,
         key: data_pairs
     }
-    with open(os.path.join(args.data, "dataset.json"), "w") as outfile:
+    with open(os.path.join(data_dir, "dataset.json"), "w") as outfile:
         json.dump(dataset, outfile)
 
     # **********These path pairs are not needed for data_loader or training--> this is for incase it is needed
     images, labels = glob(os.path.join(img_path, "*")), glob(os.path.join(lbl_path, "*"))
-    images = sorted([img.replace(args.data + "/", "") for img in images])
-    labels = sorted([lbl.replace(args.data + "/", "") for lbl in labels])
+    images = sorted([img.replace(data_dir + "/", "") for img in images])
+    labels = sorted([lbl.replace(data_dir + "/", "") for lbl in labels])
     if train:
         key = "training"
         data_pairs_fold = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
@@ -221,13 +186,56 @@ def file_prep(data_dir, modalities, train):
         "modality": modality,
         key: data_pairs
     }
-    with open(os.path.join(args.data, "datasetFold.json"), "w") as outfile:
+    with open(os.path.join(data_dir, "datasetFold.json"), "w") as outfile:
         json.dump(datasetFold, outfile)
+
+def transforms_preproc(target_shape, pair):
+    to_ras = tio.ToCanonical() # reorient to RAS+
+    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest'), # target output space (ie. match T2w to the T1w space) 
+    crop_pad = tio.CropOrPad(target_shape)
+    # normalise = tio.ZNormalization()
+    ohe = tio.OneHot(num_classes=4)
+    mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
+    normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
+    preproc_trans = [to_ras, resample_t1space, ohe, mask, normalise_foreground]
+    return preproc_trans
+
+def data_preproc(args, target_spacing=None):
+   
+    print("Generating stacked nifti files.")
+    start = time.time()
+    run_parallel(prepare_nifty(args.data, args.modal))
+    print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
+    file_prep(args.data, task, args.modal, args.exec_mode)
+    print(f"Image - label pairs created. Total time taken: {(end - start):.2f}")
+
+    print("Beginning Preprocessing.")
+    metadata_path = os.path.join(args.data, "dataset.json")
+    metadata = json.load(open(metadata_path, "dataset.json"), "r"))
+    pair = {metadata["image"], metadata["label"]}
+    preproc_trans = transforms_preproc(args.target_shape, pair)
+    apply_trans = tio.Compose(preproc_trans)
+
+    if not args.exec_mode == "training":
+        results = os.path.join(args.results, args.exec_mode, args.datasets + "_prepoc")
+    else:
+        results = os.path.join(args.results, args.datasets + "_prepoc")
+
+    if args.exec_mode == "val":
+        dataset_json = json.load(open(metadata_path, "r"))
+        dataset_json["val"] = dataset_json["training"]
+        with open(metadata_path, "w") as outfile:
+            json.dump(dataset_json, outfile)
 
 def run_parallel(func, args):
     return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
 
-
+def main():
+    args = get_main_args()
+    print(f"Preparing BraTS23 dataset from: {args.data}")
+    start = time.time()
+    data_preproc(args)
+    print(f"Data Processing complete. Total time taken: {(end - start):.2f}")
 
 if __name__=='__main__':
     main()

@@ -2,7 +2,7 @@
 MICCAI 2023 Brain Tumour Segmentation Challenge
 ## Running these scripts
 
-1. data_preprocessing : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
+1. data_prep : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
 
 2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
 
