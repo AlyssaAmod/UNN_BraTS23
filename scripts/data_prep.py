@@ -189,17 +189,6 @@ def file_prep(data_dir, modalities, train):
     with open(os.path.join(data_dir, "datasetFold.json"), "w") as outfile:
         json.dump(datasetFold, outfile)
 
-def transforms_preproc(target_shape, pair):
-    to_ras = tio.ToCanonical() # reorient to RAS+
-    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest'), # target output space (ie. match T2w to the T1w space) 
-    crop_pad = tio.CropOrPad(target_shape)
-    # normalise = tio.ZNormalization()
-    ohe = tio.OneHot(num_classes=4)
-    mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
-    normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
-    preproc_trans = [to_ras, resample_t1space, ohe, mask, normalise_foreground]
-    return preproc_trans
-
 def data_preproc(args, target_spacing=None):
    
     print("Generating stacked nifti files.")
@@ -213,8 +202,8 @@ def data_preproc(args, target_spacing=None):
     metadata_path = os.path.join(args.data, "dataset.json")
     metadata = json.load(open(metadata_path, "dataset.json"), "r"))
     pair = {metadata["image"], metadata["label"]}
-    preproc_trans = transforms_preproc(args.target_shape, pair)
-    apply_trans = tio.Compose(preproc_trans)
+    preproc_trans = transforms_preproc(pair)
+    tio.Compose(preproc_trans)
 
     if not args.exec_mode == "training":
         results = os.path.join(args.results, args.exec_mode, args.datasets + "_prepoc")

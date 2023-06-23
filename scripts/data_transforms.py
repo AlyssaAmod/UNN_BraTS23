@@ -33,3 +33,19 @@ def define_transforms():
     }
 
     return data_transforms
+
+def transforms_preproc(pair, target_shape=None):
+    to_ras = tio.ToCanonical() # reorient to RAS+
+    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest'), # target output space (ie. match T2w to the T1w space) 
+    if target_shape != None:
+        crop_pad = tio.CropOrPad(target_shape)
+    
+    if args.ohe == True:
+        ohe = tio.OneHot(num_classes=4)
+        normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
+    else:
+        mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
+        normalise = tio.ZNormalization()
+
+    preproc_trans = [to_ras, resample_t1space, crop_pad, ohe, mask, normalise_foreground]
+    return preproc_trans
