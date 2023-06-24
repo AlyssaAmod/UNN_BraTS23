@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 from torch.utils.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
@@ -24,9 +25,9 @@ class MRIDataset(Dataset):
                 # check folder contents
                 if os.path.isfile(os.path.join(img_folder, file)):
                     # Save segmentation mask (file path)
-                    if file.endswith("-seg.nii.gz"):
+                    if file.endswith("-lbl.npy"):
                         self.lbls.append(os.path.join(img_folder, file))
-                    else:
+                    elif file.endswith("-stk.npy")
                         # Save image (file path)
                         self.imgs.append(os.path.join(img_folder, file))
 
@@ -37,8 +38,8 @@ class MRIDataset(Dataset):
     def __getitem__(self, idx):
 
         # Load files
-        image = nib.load(self.imgs[idx]).get_fdata()
-        mask = nib.load(self.lbls[idx]).get_fdata()
+        image = np.load(self.imgs[idx])
+        mask = np.load(self.lbls[idx])
 
         # Convert to tensor
         image = torch.from_numpy(image) # 4, 240, 240, 155
