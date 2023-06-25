@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 from subprocess import run
+from joblib import Parallel, delayed
 
 import numpy as np
 import torch
@@ -14,6 +15,9 @@ def set_cuda_devices(args):
     assert args.gpus <= torch.cuda.device_count(), f"Requested {args.gpus} gpus, available {torch.cuda.device_count()}."
     device_list = ",".join([str(i) for i in range(args.gpus)])
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", device_list)
+
+def run_parallel(func, args):
+    return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
 
 def extract_imagedata(nifty, dtype="int16"):
     if dtype == "int16":
@@ -56,7 +60,7 @@ def get_main_args(strings=None):
 
     #For file loading (paths & static vars)
     # Folders
-    arg("--data", type=str, default="/data", help="Path to data directory")
+    arg("--data", type=str, default="/data", help="Path to main data directory")
     arg("--procData", type=str, default="/data", help="Path for saving output directory")
     arg("--results", type=str, default="/results", help="Path to results directory")
     arg("--ckpt_path", type=str, default=None, help="Path for loading checkpoint")
@@ -64,7 +68,7 @@ def get_main_args(strings=None):
 
     # Naming conventions & saving
     arg("--modal", tye=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
-    arg("--datasets", type=str, default="ATr", help="Dataset used",
+    arg("--data_grp", type=str, default="ATr", help="Dataset used",
         choices={"ATr": "BraTS23_train",
                   "AV": "BraTS23_val",
                  "ATe": "BraTS23_test",
@@ -160,3 +164,16 @@ def verify_ckpt_path(args):
         return None
     return args.ckpt_path
 
+## ***** ADDED INTO ONE FUNCTION CALL --> CHECK WITH ALEX AND DELETE COMMENTED LINES *****
+# # Read in the dataset folder structure
+# def load_dir(directory):
+#     data_dir = directory
+#     subjID = sorted(os.listdir(data_dir))
+#     print("You are working in :", data_dir, "Total subjects: ", len(subjID))
+#     subj_dir = os.path.join(data_dir, subjID)
+#     data = {
+#         "subjID": subjID
+#     }
+#     with open("data_overview.json", "w") as file:
+#         json.dump(data, file)
+#     return subj_dir 

@@ -3,18 +3,25 @@ import torch
 import sys
 
 
-def preprocess_data(img, mask):
-    '''
-    Function that applies all desired preprocessing steps to an image, as well as to its 
-    corresponding ground truth image.
 
-    Returns: preprocessed image (not yet converted to tensor)
-    '''
-    # img is still a list of arrays of the 4 modalities from data files
-    # mask is 3d array
 
-    # return img as list of arrays, and mask as before
-    return img, mask
+
+
+####################### OLD CODE --> DELETE ######################
+#   Create paths for each modality
+    # modalities = args.modal
+    # data_dir = args.data
+    # subjID = sorted(os.listdir(data_dir))
+    # print("You are working in :", data_dir, "Total subjects: ", len(subjID))
+    # subj_dir = os.path.join(data_dir, subjID)
+    # img_pth = [(os.path.join(subj_dir, subjID + f"-{m}.nii.gz")) for m in modalities]
+    # lbl_pth = os.path.join(subj_dir, subjID + "-seg.nii.gz")
+
+
+
+
+
+
     
 
 

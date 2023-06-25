@@ -1,5 +1,8 @@
 from torchvision import transforms
 import torchio as tio
+import torch
+import warnings
+
 
 #! TO DO: we must fill in the transforms we want to apply
 def define_transforms():
@@ -34,18 +37,39 @@ def define_transforms():
 
     return data_transforms
 
-def transforms_preproc(pair, target_shape=None):
+def transforms_preproc(pair, ohe, target_shape):
+    
     to_ras = tio.ToCanonical() # reorient to RAS+
-    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest'), # target output space (ie. match T2w to the T1w space) 
+    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
     if target_shape != None:
         crop_pad = tio.CropOrPad(target_shape)
-    
-    if args.ohe == True:
-        ohe = tio.OneHot(num_classes=4)
-        normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
-    else:
-        mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
-        normalise = tio.ZNormalization()
+    one_hot_enc = tio.OneHot(num_classes=4)
+    normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
+    mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
+    normalise = tio.ZNormalization()
 
-    preproc_trans = [to_ras, resample_t1space, crop_pad, ohe, mask, normalise_foreground]
-    return preproc_trans
+        
+    apply_trans = {
+        'checkRAS' : to_ras,
+        'resampleTot1' : resample_t1space,
+        'oheZN' : tio.Compose([crop_pad, one_hot_enc, normalise_foreground]),
+        'brainmask' : tio.Compose([crop_pad, mask, normalise])
+    }
+
+    preproc_trans = [to_ras, resample_t1space, crop_pad, 
+                     one_hot_enc, normalise_foreground,
+                     mask,normalise]
+    
+    return apply_transforms, preproc_trans
+
+def apply_transforms(image, preproc_trans, seed=42, show=False, exclude=None):
+    torch.manual_seed(seed)
+    results = []
+    transformed = image
+    for transform in preproc_trans:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = transform(transformed)
+            if exclude is None or transform.name not in exclude:
+                transformed = result
+
