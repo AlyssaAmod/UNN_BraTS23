@@ -57,7 +57,10 @@ def get_main_args(strings=None):
         default="train", choices=["train", "evaluate", "predict"],
         help="Execution mode to run the model",
     )
-
+    arg("--task", type=str,
+        default="other" choices=["data_prep", "other"],
+        help="Mode for dataset class call",
+    )
     #For file loading (paths & static vars)
     # Folders
     arg("--data", type=str, default="/data", help="Path to main data directory")
@@ -65,7 +68,7 @@ def get_main_args(strings=None):
     arg("--results", type=str, default="/results", help="Path to results directory")
     arg("--ckpt_path", type=str, default=None, help="Path for loading checkpoint")
     arg("--ckpt_store_dir", type=str, default="/results", help="Path for saving checkpoint")
-
+    
     # Naming conventions & saving
     arg("--modal", tye=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
     arg("--data_grp", type=str, default="ATr", help="Dataset used",
