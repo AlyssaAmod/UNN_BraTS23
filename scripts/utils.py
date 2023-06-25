@@ -51,15 +51,15 @@ def get_main_args(strings=None):
     # Data set allocatin and execution param
     arg("--prepoc_set", type=str,
         default="training", choices=["training", "val", "test"],
-        help="Mode for data preprocessing",
+        help="Mode for data preprocessing"
     )
     arg("--exec_mode", type=str,
         default="train", choices=["train", "evaluate", "predict"],
-        help="Execution mode to run the model",
+        help="Execution mode to run the model"
     )
-    arg("--task", type=str,
-        default="other" choices=["data_prep", "other"],
-        help="Mode for dataset class call",
+    arg("--task", type=str, 
+        default="other", choices=["data_prep", "other"], 
+        help="Mode for dataset class call"
     )
     #For file loading (paths & static vars)
     # Folders
@@ -70,7 +70,7 @@ def get_main_args(strings=None):
     arg("--ckpt_store_dir", type=str, default="/results", help="Path for saving checkpoint")
     
     # Naming conventions & saving
-    arg("--modal", tye=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
+    arg("--modal", type=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
     arg("--data_grp", type=str, default="ATr", help="Dataset used",
         choices={"ATr": "BraTS23_train",
                   "AV": "BraTS23_val",
@@ -93,28 +93,28 @@ def get_main_args(strings=None):
     arg("--verbose", action="store_true")
 
 
-    # Cluster allocations
-    arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default
-    arg("--gpus", type=non_negative_int, default=1, help="Number of gpus")
-    arg("--nodes", type=non_negative_int, default=1, help="Number of nodes")
-    arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
+    # # Cluster allocations
+    # arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default
+    # arg("--gpus", type=non_negative_int, default=1, help="Number of gpus")
+    # arg("--nodes", type=non_negative_int, default=1, help="Number of nodes")
+    # arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
 
-    # Training parameters ************** TO COMPLETE NEXT WEEK***************
-    arg("--nfolds", type=positive_int, default=5, help="Number of cross-validation folds")
-    arg("--fold", type=non_negative_int, default=0, help="Fold number")
-    arg("--seed", type=non_negative_int, default=None, help="Random seed")
+    # # Training parameters ************** TO COMPLETE NEXT WEEK***************
+    # arg("--nfolds", type=positive_int, default=5, help="Number of cross-validation folds")
+    # arg("--fold", type=non_negative_int, default=0, help="Fold number")
+    # arg("--seed", type=non_negative_int, default=None, help="Random seed")
     
-    arg("--epochs", type=non_negative_int, default=1000, help="Number of training epochs.")
-    arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
-    arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size")
-    arg("--depth", type=non_negative_int, default=5, help="The depth of the encoder")                                       # <---------- CHANGE default
-    arg("--batch_size", type=positive_int, default=2, help="Batch size")                                                    # <---------- CHANGE default
-    arg("--optimizer", type=str, default="adam", choices=["sgd", "adam"], help="Optimizer",)
+    # arg("--epochs", type=non_negative_int, default=1000, help="Number of training epochs.")
+    # arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
+    # arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size")
+    # arg("--depth", type=non_negative_int, default=5, help="The depth of the encoder")                                       # <---------- CHANGE default
+    # arg("--batch_size", type=positive_int, default=2, help="Batch size")                                                    # <---------- CHANGE default
+    # arg("--optimizer", type=str, default="adam", choices=["sgd", "adam"], help="Optimizer",)
 
-    arg("--val_batch_size", type=positive_int, default=4, help="Validation batch size")                                     # <---------- CHANGE default
-    arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
-    arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default
-    arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
+    # arg("--val_batch_size", type=positive_int, default=4, help="Validation batch size")                                     # <---------- CHANGE default
+    # arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
+    # arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default
+    # arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
     
     # # Other training params ************ TO CHECK IF NEEDED ******************
     # arg("--gradient_clip_val", type=float, default=0, help="Gradient clipping norm value")
@@ -145,8 +145,8 @@ def get_main_args(strings=None):
             args.update(config)
             args = Namespace(**args)
 
-    with open(f"{args.results}/params.json", "w") as f:
-        json.dump(vars(args), f)
+    # with open(f"{args.results}/params.json", "w") as f:
+    #     json.dump(vars(args), f)
 
     return args
 
