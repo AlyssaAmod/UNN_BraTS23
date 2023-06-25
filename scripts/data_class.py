@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 from torch.utils.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
@@ -47,6 +48,18 @@ class MRIDataset(Dataset):
                     # Save preprocessed image (file path)
                     self.imgs.append(os.path.join(subj_dir, file))
 
+        for img_folder in data_folders:
+            # check if current file is from SSA dataset
+            self.SSA = True if 'SSA' in img_folder else False
+            for file in os.list(img_folder):
+                # check folder contents
+                if os.path.isfile(os.path.join(img_folder, file)):
+                    # Save segmentation mask (file path)
+                    if file.endswith("-lbl.npy"):
+                        self.lbls.append(os.path.join(img_folder, file))
+                    elif file.endswith("-stk.npy")
+                        # Save image (file path)
+                        self.imgs.append(os.path.join(img_folder, file))
 
     def __len__(self):
         # Return the amount of images in this set
@@ -55,8 +68,8 @@ class MRIDataset(Dataset):
     def __getitem__(self, idx):
 
         # Load files
-        image = nib.load(self.imgs[idx]).get_fdata()
-        mask = nib.load(self.lbls[idx]).get_fdata()
+        image = np.load(self.imgs[idx])
+        mask = np.load(self.lbls[idx])
 
         # Convert to tensor
         image = torch.from_numpy(image) # 4, 240, 240, 155
