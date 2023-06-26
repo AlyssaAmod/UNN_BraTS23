@@ -136,6 +136,7 @@ def get_main_args(strings=None):
             nargs="*",
             help="String for searching",
         )
+        args = parser. for_namespaces([])
         args = parser.parse_args(strings.split())
     else:
         args = parser.parse_args()

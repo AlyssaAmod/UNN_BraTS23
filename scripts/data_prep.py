@@ -70,7 +70,7 @@ def prepare_nifty(dataset, args):
     img_pth, seg_pth = dataset.get_paths()
     subjIDs = dataset.subjIDls
 
-    modalities = args.modal
+    modalities = dataset.modalities
 
     img_modality = []
     img_shapes = {}
@@ -95,7 +95,7 @@ def prepare_nifty(dataset, args):
             #seg[vol == 4] = 3 --> not sure what this does yet
             seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
             nib.save(seg, os.path.join(os.path.dirname(pth), os.path.basename(os.path.dirname(pth)) + "-lbl.nii.gz"))                   
-        # save a few bits of info into a json    
+    # save a few bits of info into a json    
         print("Saving shape & resolution data per subject")
         img_info = {
             "img_shapes": img_shapes,
@@ -104,16 +104,16 @@ def prepare_nifty(dataset, args):
         }
         with open("image_info.json", "a") as file:
             json.dump(img_info, file)
-        subj_info = {
-            "subjIDs" : subjIDs,
-            "subjDirs" : subj_dirs
-        }
-        # print("Saving SubjIDs")
-        with open("subj_info.json", "w") as file:
-            json.dump(subj_info,file)
+    subj_info = {
+        "subjIDs" : subjIDs,
+        "subjDirs" : subj_dirs
+    }
+    # print("Saving SubjIDs")
+    with open("subj_info.json", "w") as file:
+        json.dump(subj_info,file)
 
 
-def file_prep(data_dir, modalities, dataMode, train):
+def file_prep(dataset, dataMode, train):
     """ 
     This an extra function to save a copy of the image data extracted from each volume.
     data_loader and trainer do not require these data as they are stored in the original subject folders as well
@@ -126,6 +126,9 @@ def file_prep(data_dir, modalities, dataMode, train):
         A dictionary of dictionaries containing the image-label path pairs
             "training": [{"image": "images/subjIDxxx.nii.gz", "label": "labels/subjIDxxx_seg.nii.gz"}
     """
+
+    data_dir = dataset.data_dir
+    modalities = dataset.modalities
     stk_path, lbls_path = os.path.join(data_dir, f"images_orig-{dataMode}"), os.path.join(data_dir, f"labels_orig-{dataMode}")
     call(f"mkdir {stk_path}", shell=True)
     if train:
@@ -226,8 +229,8 @@ def main():
     startT = time.time()
     prepare_nifty(origData, args)
     print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    train = True if args.preproc_set == 'training' else False
-    file_prep(data_dir, modalities, args.data_grp, train)
+    train = True if args.prepoc_set == 'training' else False
+    file_prep(origData, args.data_grp, train)
     endT = time.time()
     print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 

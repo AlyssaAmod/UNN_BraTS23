@@ -40,7 +40,7 @@ class MRIDataset(Dataset):
                 self.subjID = str(subj)
                 self.subjIDls.append(self.subjID)           
                 self.SSA = True if 'SSA' in self.subjID else False
-                for i, file in enumerate(os.listdir(self.subj_dir_pths)):
+                for i, file in enumerate(self.subj_dir_pths):
                     # check folder contents
                     file_pth = os.path.join(self.subj_dir_pths[i], file)
                     if os.path.isfile(file_pth):

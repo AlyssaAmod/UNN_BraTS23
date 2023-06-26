@@ -60,9 +60,9 @@ def transforms_preproc(pair, ohe, target_shape):
                      one_hot_enc, normalise_foreground,
                      mask,normalise]
     
-    return apply_transforms, preproc_trans
+    return apply_trans, preproc_trans
 
-def apply_transforms(image, preproc_trans, seed=42, show=False, exclude=None):
+def apply_transforms(image, transforms, seed=42, show=False, exclude=None):
     torch.manual_seed(seed)
     results = []
     transformed = image
