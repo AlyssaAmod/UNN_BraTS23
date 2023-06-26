@@ -35,7 +35,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from pathlib import Path
-import tio
+import torchio as tio
 
 from data_class import MRIDataset
 import utils
@@ -219,7 +219,7 @@ def preprocess_data(dataset, args):
     mask = []
 
     to_ras = tio.ToCanonical() # reorient to RAS+
-    resample_t1space = tio.Resample(img[0], image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
+    # resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
     if args.target_shape != None:
         crop_pad = tio.CropOrPad(args.target_shape)
     one_hot_enc = tio.OneHot(num_classes=4)
@@ -227,13 +227,8 @@ def preprocess_data(dataset, args):
     masked = tio.Mask(masking_method=tio.LabelMap(mask))
     normalise = tio.ZNormalization()
         
-    apply_trans = {
-        'checkRAS' : to_ras,
-        'resampleTot1' : resample_t1space,
-        'oheZN' : tio.Compose([crop_pad, one_hot_enc, normalise_foreground]),
-        'brainmask' : tio.Compose([crop_pad, masked, normalise])
-        }
-    
+    oheZN = tio.Compose([crop_pad, one_hot_enc, normalise_foreground])
+
     imgs = []
     masks = []
     for subj in subj_dirs:
@@ -245,14 +240,18 @@ def preprocess_data(dataset, args):
                 elif fileName.endswith("-lbl.nii.gz"):
                     mask = nib.load(os.path.join(root,fileName))
                     mask = extract_imagedata(mask)
-                    mask = apply_transforms(mask, apply_trans['checkRAS', 'oheZN'])
+                    # mask = apply_transforms(mask, apply_trans["checkRAS"])
+                    # mask = apply_transforms(mask, apply_trans["oheZN"])
+                    mask = np.expand_dims(mask, axis=0)
+                    mask = to_ras(mask)
+                    mask = oheZN(mask)
                     mask= np.save(os.path.join(outpath, subj + "-stk.npy"), mask)
                     masks.append(masks)
                 elif fileName.endswith("-stk.nii.gz"):
                     img = nib.load(os.path.join(root,fileName))
                     img = extract_imagedata(img)
-        
-                    img = apply_transforms(img, apply_trans['checkRAS', 'oheZN'])
+                    img = to_ras(img)
+                    img = oheZN(img)
                     img = np.save(os.path.join(outpath, subj + "-lbl.npy"), img)
                     imgs.append(img)
         
