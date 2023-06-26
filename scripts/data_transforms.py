@@ -37,15 +37,15 @@ def define_transforms():
 
     return data_transforms
 
-def transforms_preproc(pair, ohe, target_shape):
+def transforms_preproc(label, ohe, target_shape):
     
     to_ras = tio.ToCanonical() # reorient to RAS+
-    resample_t1space = tio.Resample(pair["image"], image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
+    resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
     if target_shape != None:
         crop_pad = tio.CropOrPad(target_shape)
     one_hot_enc = tio.OneHot(num_classes=4)
     normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
-    mask = tio.Mask(masking_method=tio.LabelMap(pair["label"]))
+    masked = tio.Mask(masking_method=tio.LabelMap(label))
     normalise = tio.ZNormalization()
 
         
@@ -53,12 +53,12 @@ def transforms_preproc(pair, ohe, target_shape):
         'checkRAS' : to_ras,
         'resampleTot1' : resample_t1space,
         'oheZN' : tio.Compose([crop_pad, one_hot_enc, normalise_foreground]),
-        'brainmask' : tio.Compose([crop_pad, mask, normalise])
+        'brainmask' : tio.Compose([crop_pad, masked, normalise])
     }
 
     preproc_trans = [to_ras, resample_t1space, crop_pad, 
                      one_hot_enc, normalise_foreground,
-                     mask,normalise]
+                     masked,normalise]
     
     return apply_trans, preproc_trans
 
@@ -66,7 +66,7 @@ def apply_transforms(image, transforms, seed=42, show=False, exclude=None):
     torch.manual_seed(seed)
     results = []
     transformed = image
-    for transform in preproc_trans:
+    for transform in transforms:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             result = transform(transformed)

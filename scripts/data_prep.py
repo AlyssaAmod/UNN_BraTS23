@@ -35,6 +35,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from pathlib import Path
+import tio
 
 from data_class import MRIDataset
 import utils
@@ -43,7 +44,7 @@ from utils import extract_imagedata
 from data_transforms import transforms_preproc
 from data_transforms import apply_transforms
 
-def prepare_nifty(dataset, args):
+def prepare_nifty(dataset):
     """ 
     This is the main data prepartion function. 
     It extracts the the image data from each volume and then stacks all modalities into one file.
@@ -68,48 +69,55 @@ def prepare_nifty(dataset, args):
     data_dir = dataset.data_dir
     subj_dirs = dataset.subj_dirs
     img_pth, seg_pth = dataset.get_paths()
+
     subjIDs = dataset.subjIDls
 
     modalities = dataset.modalities
 
-    img_modality = []
-    img_shapes = {}
-
-    for idx, pth in img_pth:
-        fileName = os.path.basename(pth)
-        for mname in modalities:
-            if fileName.endswith(os.path.join(f"-{mname}.nii.gz")):
-               # if os.path.join(subjID + f"-{mname}.nii.gz") in img_pth[idx]:
-                globals()[f'{mname}'] = nib.load(img_pth[idx])
-                img_modality.append(globals()[f'{mname}'])
-                img_shapes[f'{mname}']=img_modality[idx].shape
-        affine, header = img_modality[-1].affine, img_modality[-1].header
-        res = header.get_zooms()
-        imgs = np.stack([extract_imagedata(img_modality[m]) for m, mod in enumerate(modalities)], axis=-1)
-        imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
-        nib.save(imgs, os.path.join(os.path.dirname(pth), os.path.basename(os.path.dirname(pth)) + "-stk.nii.gz"))            # check folder contents
-        if fileName.endswith("-seg.nii.gz"):
-            seg = nib.load(img_pth[idx])
-            seg_affine, seg_header = seg.affine, seg.header
-            seg = extract_imagedata(seg, "unit8")
-            #seg[vol == 4] = 3 --> not sure what this does yet
-            seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-            nib.save(seg, os.path.join(os.path.dirname(pth), os.path.basename(os.path.dirname(pth)) + "-lbl.nii.gz"))                   
-    # save a few bits of info into a json    
-        print("Saving shape & resolution data per subject")
-        img_info = {
-            "img_shapes": img_shapes,
-            "res": res,
-            "img_modalitypth": img_pth
-        }
-        with open("image_info.json", "a") as file:
-            json.dump(img_info, file)
+    for subj in subj_dirs:
+        pth = os.path.join(data_dir, subj)
+        for root, dirs, files in os.walk(pth):
+            for fileName in files:
+                print("Entering for loop 3: \nSubj ", subj, "\nFile name ", fileName)
+                if not fileName.endswith(".nii.gz"):
+                    continue
+                if fileName.endswith("-seg.nii.gz"):
+                    seg = nib.load(os.path.join(root,fileName))
+                    seg_affine, seg_header = seg.affine, seg.header
+                    seg = extract_imagedata(seg, "unit8")
+                    #seg[vol == 4] = 3 --> not sure what this does yet
+                    seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
+                    nib.save(seg, os.path.join(root, subj + "-lbl.nii.gz"))
+                else:
+                    img_modality = []
+                    img_shapes = {}
+                    for m, mname in enumerate(modalities):
+                        print("Entering for loop 4: ", m, mname)
+                        globals()[f'{mname}'] = nib.load(os.path.join(root,fileName))
+                        img_modality.append(globals()[f'{mname}'])
+                        img_shapes[f'{mname}']=img_modality[m].shape
+                    print(img_modality)
+                    affine, header = img_modality[-1].affine, img_modality[-1].header
+                    res = header.get_zooms()
+                    imgs = np.stack([extract_imagedata(img_modality[m]) for m in range(len(img_modality))], axis=-1)
+                    imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
+                    nib.save(imgs, os.path.join(root, subj + "-stk.nii.gz"))
+                             
+    # save a few bits of info into a json 
+                
+                # img_info = {
+                #     "img_shapes": img_shapes,
+                #     "res": res,
+                #     "img_modalitypth": img_pth}
+                # print("Saving shape & resolution data per subject")
+                # with open("image_info.json", "a") as file:
+                #     json.dump(img_info, file)
+               
     subj_info = {
-        "subjIDs" : subjIDs,
-        "subjDirs" : subj_dirs
+        "subjIDs" : subjIDs
     }
-    # print("Saving SubjIDs")
-    with open("subj_info.json", "w") as file:
+    print("Saving SubjIDs")
+    with open(os.path.join(data_dir+"subj_info.json"), "a") as file:
         json.dump(subj_info,file)
 
 
@@ -139,20 +147,20 @@ def file_prep(dataset, dataMode, train):
         files = glob(os.path.join(d, "*.nii.gz"))
         images, labels = [], []
         for f in files:
-            if any(ignor_str in f for ignor_str in modalities):
+            if any(m in f for m in modalities) or '-seg' in f:
                 continue
             if "-lbl" in f:
                 labels.append(f)
-                call(f"cp {f} {stk_path}", shell=True)
+                call(f"copy {f} {lbls_path}", shell=True)
             else:
                 images.append(f) 
-                call(f"cp {f} {lbls_path}", shell=True)
-    if train == "training":
-        key = "training"
-        data_pairs = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
-    else:
-        key = "test"
-        data_pairs = [{"image": img} for img in images]
+                call(f"copy {f} {stk_path}", shell=True)
+        if train == "training":
+            key = "training"
+            data_pairs = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
+        else:
+            key = "test"
+            data_pairs = [{"image": img} for img in images]
 
     
     # ********** NEED TO CHOOSE HOW WE WANT TO SAVE THE LABELS DICT *********
@@ -182,13 +190,12 @@ def file_prep(dataset, dataMode, train):
     datasetFold = {
         "labels": labels_dict,
         "modality": modality,
-        key: data_pairs
-    }
+        key: data_pairs_fold}
     with open(os.path.join(data_dir, "datasetFold.json"), "w") as outfile:
         json.dump(datasetFold, outfile)
 
 
-def preprocess_data(data_dir, img, mask, args):
+def preprocess_data(dataset, args):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
     corresponding ground truth image.
@@ -199,47 +206,82 @@ def preprocess_data(data_dir, img, mask, args):
     # mask is 3d array
 
     # return img as list of arrays, and mask as before
-    outpath = os.path.join(data_dir, args.datasets + "_prepoc")
+    
+    data_dir = dataset.data_dir
+    subj_dirs = dataset.subj_dirs
+    img_pth, seg_pth = dataset.get_paths()
+
+    modalities = dataset.modalities
+
+    outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir {outpath}", shell=True)
+    img = []
+    mask = []
 
-    metadata_path = os.path.join(data_dir, "dataset.json")
-    metadata = json.load(open(metadata_path), "r")
-    pair = {metadata["image"], metadata["label"]}
-    apply_trans, preproc_trans = transforms_preproc(pair)
+    to_ras = tio.ToCanonical() # reorient to RAS+
+    resample_t1space = tio.Resample(img[0], image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
+    if args.target_shape != None:
+        crop_pad = tio.CropOrPad(args.target_shape)
+    one_hot_enc = tio.OneHot(num_classes=4)
+    normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
+    masked = tio.Mask(masking_method=tio.LabelMap(mask))
+    normalise = tio.ZNormalization()
+        
+    apply_trans = {
+        'checkRAS' : to_ras,
+        'resampleTot1' : resample_t1space,
+        'oheZN' : tio.Compose([crop_pad, one_hot_enc, normalise_foreground]),
+        'brainmask' : tio.Compose([crop_pad, masked, normalise])
+        }
+    
+    imgs = []
+    masks = []
+    for subj in subj_dirs:
+        pth = os.path.join(data_dir, subj)
+        for root, dirs, files in os.walk(pth):
+            for fileName in files:
+                if not fileName.endswith(".nii.gz"):
+                    continue
+                elif fileName.endswith("-lbl.nii.gz"):
+                    mask = nib.load(os.path.join(root,fileName))
+                    mask = extract_imagedata(mask)
+                    mask = apply_transforms(mask, apply_trans['checkRAS', 'oheZN'])
+                    mask= np.save(os.path.join(outpath, subj + "-stk.npy"), mask)
+                    masks.append(masks)
+                elif fileName.endswith("-stk.nii.gz"):
+                    img = nib.load(os.path.join(root,fileName))
+                    img = extract_imagedata(img)
+        
+                    img = apply_transforms(img, apply_trans['checkRAS', 'oheZN'])
+                    img = np.save(os.path.join(outpath, subj + "-lbl.npy"), img)
+                    imgs.append(img)
+        
 
-    apply_transforms(pair, apply_trans['checkRAS', 'oheZN'])
 
-    if args.exec_mode == "val":
-        dataset_json = json.load(open(metadata_path, "r"))
-        dataset_json["val"] = dataset_json["training"]
-        with open(metadata_path, "w") as outfile:
-            json.dump(dataset_json, outfile)
-
-    return img, mask
+    return imgs, masks
 
 def main():
     args = get_main_args()
-    # modalities = args.modal
-    # data_dir = args.data
-    origData = MRIDataset(args.data, args.task, modalities=args.modal)
-    # img_pth, seg_pth = origData.get_paths()
-    #subj_dir, subjID, SSA = origData.get_subj_info()
-  
-    print("Generating stacked nifti files.")
-    startT = time.time()
-    prepare_nifty(origData, args)
-    print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    train = True if args.prepoc_set == 'training' else False
-    file_prep(origData, args.data_grp, train)
-    endT = time.time()
-    print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
-
+    modalities = args.modal
+    data_dir = args.data
+    task = args.task
+    origData = MRIDataset(data_dir, task, modalities=modalities)
+      
+    # print("Generating stacked nifti files.")
     # startT = time.time()
-    # print("Beginning Preprocessing.")
+    # prepare_nifty(origData)
+    # print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
+    # train = True if args.prepoc_set == 'training' else False
+    # file_prep(origData, args.data_grp, train)
+    # endT = time.time()
+    # print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
-    # run_parallel(preprocess_data(origData.data_dir, args))
-    # end = time.time()
-    # print(f"Data Processing complete. Total time taken: {(end - start):.2f}")
+    startT = time.time()
+    print("Beginning Preprocessing.")
+    preprocess_data(origData, args)
+    # utils.run_parallel(preprocess_data(origData.data_dir, args))
+    end = time.time()
+    print(f"Data Processing complete. Total time taken: {(end - start):.2f}")
 
 if __name__=='__main__':
     main()

@@ -21,7 +21,7 @@ class MRIDataset(Dataset):
         self.transform = transform
         self.SSAtransform = SSAtransform
         
-        self.subj_dirs = data_dir
+        self.subj_dirs = sorted(os.listdir(data_dir))
         self.subjIDls = []
         self.img_pth = []
         self.seg_pth = []
@@ -31,25 +31,27 @@ class MRIDataset(Dataset):
 
         self.imgs = [] # store images to load (paths)
         self.lbls = [] # store corresponding labels (paths)
-        
-        
+
         if task == "data_prep":
-            for subj in sorted(os.listdir(data_dir)):
-                # run through each subjectID folder
-                self.subj_dir_pths.append(os.path.join(data_dir, subj))
-                self.subjID = str(subj)
-                self.subjIDls.append(self.subjID)           
-                self.SSA = True if 'SSA' in self.subjID else False
-                for i, file in enumerate(self.subj_dir_pths):
-                    # check folder contents
-                    file_pth = os.path.join(self.subj_dir_pths[i], file)
+
+            for root, dirs, files in os.walk(self.data_dir):
+                for dir in dirs:
+                    self.subj_dir_pths.append(os.path.join(root,dir))
+                    self.subjID = str(dir)
+                    self.subjIDls.append(self.subjID)           
+                    self.SSA = True if 'SSA' in self.subjID else False
+                for file in files:
+                    # print(file)
+                # check folder contents
+                    file_pth = os.path.join(root, file)
+                    # print(file_pth)
                     if os.path.isfile(file_pth):
                         # Save original segmentation mask (file path)
                         if file.endswith("-seg.nii.gz"):
                             self.seg_pth.append(file_pth)
                         elif [file.endswith(f"-{m}.nii.gz") for m in modalities]:
                             # Save original image (file path)
-                            self.seg_pth.append(file_pth)
+                            self.img_pth.append(file_pth)
                         # Save pre-processed segmentation mask (file path)
                         elif file.endswith("-lbl.nii.gz"):
                             self.proc_lbls.append(file_pth)
@@ -60,7 +62,7 @@ class MRIDataset(Dataset):
             for img_folder in data_dir:
                 # check if current file is from SSA dataset
                 self.SSA = True if 'SSA' in img_folder else False
-                for file in os.list(img_folder):
+                for file in os.listdir(img_folder):
                     # check folder contents
                     if os.path.isfile(os.path.join(img_folder, file)):
                         # Save segmentation mask (file path)
