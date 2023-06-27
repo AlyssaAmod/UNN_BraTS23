@@ -89,6 +89,7 @@ def prepare_nifty(dataset):
                     seg = extract_imagedata(seg, "unit8")
                     #seg[vol == 4] = 3 --> not sure what this does yet
                     seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
+                    print(seg.shape)
                     nib.save(seg, os.path.join(root, subj + "-lbl.nii.gz"))
                 else:
                     img_modality = []
@@ -100,14 +101,14 @@ def prepare_nifty(dataset):
                         else:
                             globals()[f'{mname}'] = nib.load(os.path.join(root,fileName))
                             img_modality.append(globals()[f'{mname}'])
-                            print(img_modality.shape)
+                            print((globals()[f'{mname}']).shape)
                             img_shapes[f'{mname}']=img_modality[m].shape
-                    print(img_modality)
-                    affine, header = img_modality[-1].affine, img_modality[-1].header
-                    res = header.get_zooms()
-                    imgs = np.stack([extract_imagedata(img_modality[m]) for m in range(len(img_modality))], axis=-1)
-                    imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
-                    nib.save(imgs, os.path.join(root, subj + "-stk.nii.gz"))
+            print(img_modality)
+            affine, header = img_modality[-1].affine, img_modality[-1].header
+            res = header.get_zooms()
+            imgs = np.stack([extract_imagedata(img_modality[m]) for m in range(len(img_modality))], axis=-1)
+            imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
+            nib.save(imgs, os.path.join(root, subj + "-stk.nii.gz"))
                              
     # save a few bits of info into a json 
                 
