@@ -36,6 +36,8 @@ import numpy as np
 import torch
 from pathlib import Path
 import torchio as tio
+import torchvision.transforms as transforms
+
 
 from data_class import MRIDataset
 import utils
@@ -93,9 +95,13 @@ def prepare_nifty(dataset):
                     img_shapes = {}
                     for m, mname in enumerate(modalities):
                         print("Entering for loop 4: ", m, mname)
-                        globals()[f'{mname}'] = nib.load(os.path.join(root,fileName))
-                        img_modality.append(globals()[f'{mname}'])
-                        img_shapes[f'{mname}']=img_modality[m].shape
+                        if not fileName.endswith(f"{mname}.nii.gz"):
+                            continue
+                        else:
+                            globals()[f'{mname}'] = nib.load(os.path.join(root,fileName))
+                            img_modality.append(globals()[f'{mname}'])
+                            print(img_modality.shape)
+                            img_shapes[f'{mname}']=img_modality[m].shape
                     print(img_modality)
                     affine, header = img_modality[-1].affine, img_modality[-1].header
                     res = header.get_zooms()
@@ -142,25 +148,25 @@ def file_prep(dataset, dataMode, train):
     if train:
         call(f"mkdir {lbls_path}", shell=True)
     
-    dirs = glob(os.path.join(data_dir, "BraTS*"))
-    for d in dirs:
-        files = glob(os.path.join(d, "*.nii.gz"))
-        images, labels = [], []
-        for f in files:
-            if any(m in f for m in modalities) or '-seg' in f:
-                continue
-            if "-lbl" in f:
-                labels.append(f)
-                call(f"copy {f} {lbls_path}", shell=True)
-            else:
-                images.append(f) 
-                call(f"copy {f} {stk_path}", shell=True)
-        if train == "training":
-            key = "training"
-            data_pairs = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
-        else:
-            key = "test"
-            data_pairs = [{"image": img} for img in images]
+    for root, dirs, files in os.walk(pth):
+    #dirs = glob(os.path.join(data_dir, "BraTS*"))
+        for d in dirs:
+            images, labels = [], []
+            for f in files:
+                if not f.endswith("-lbl.nii.gz") or not f.endswith("-stk.nii.gz"):
+                    continue
+                if "-lbl" in f:
+                    labels.append(f)
+                    call(f"copy {f} {lbls_path}", shell=True)
+                else:
+                    images.append(f) 
+                    call(f"copy {f} {stk_path}", shell=True)
+    if train == "training":
+        key = "training"
+        data_pairs = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
+    else:
+        key = "test"
+        data_pairs = [{"image": img} for img in images]
 
     
     # ********** NEED TO CHOOSE HOW WE WANT TO SAVE THE LABELS DICT *********
@@ -235,28 +241,29 @@ def preprocess_data(dataset, args):
         pth = os.path.join(data_dir, subj)
         for root, dirs, files in os.walk(pth):
             for fileName in files:
-                if not fileName.endswith(".nii.gz"):
+                if not f.endswith("-lbl.nii.gz") or not f.endswith("-stk.nii.gz"):
                     continue
-                elif fileName.endswith("-lbl.nii.gz"):
+                if fileName.endswith("-lbl.nii.gz"):
                     mask = nib.load(os.path.join(root,fileName))
                     mask = extract_imagedata(mask)
                     # mask = apply_transforms(mask, apply_trans["checkRAS"])
                     # mask = apply_transforms(mask, apply_trans["oheZN"])
-                    mask = np.expand_dims(mask, axis=0)
-                    mask = to_ras(mask)
-                    mask = oheZN(mask)
-                    mask= np.save(os.path.join(outpath, subj + "-stk.npy"), mask)
-                    masks.append(masks)
+                    mask_t = torch.from_numpy(mask)
+                    mask_t = np.expand_dims(mask, axis=0)
+                    print("Label file: ", fileName, "shape is: ", mask.shape)
+                    mask_t = to_ras(mask_t)
+                    mask_t = oheZN(mask_t)
+                    np.save(os.path.join(outpath, subj + "-lbl.npy"), mask_t)
+                    masks.append(mask_t)
                 elif fileName.endswith("-stk.nii.gz"):
                     img = nib.load(os.path.join(root,fileName))
                     img = extract_imagedata(img)
-                    img = to_ras(img)
-                    img = oheZN(img)
-                    img = np.save(os.path.join(outpath, subj + "-lbl.npy"), img)
-                    imgs.append(img)
+                    img_t = torch.from_numpy(img)
+                    img_t = to_ras(img_t)
+                    img_t = oheZN(img_t)
+                    img_t = np.save(os.path.join(outpath, subj + "-stk.npy"), img_t)
+                    imgs.append(img_t)
         
-
-
     return imgs, masks
 
 def main():
@@ -266,21 +273,21 @@ def main():
     task = args.task
     origData = MRIDataset(data_dir, task, modalities=modalities)
       
-    # print("Generating stacked nifti files.")
-    # startT = time.time()
-    # prepare_nifty(origData)
-    # print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    # train = True if args.prepoc_set == 'training' else False
-    # file_prep(origData, args.data_grp, train)
-    # endT = time.time()
-    # print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
-
+    print("Generating stacked nifti files.")
     startT = time.time()
+    prepare_nifty(origData)
+    print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
+    train = True if args.prepoc_set == 'training' else False
+    file_prep(origData, args.data_grp, train)
+    endT = time.time()
+    print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+
+    startT2 = time.time()
     print("Beginning Preprocessing.")
-    preprocess_data(origData, args)
-    # utils.run_parallel(preprocess_data(origData.data_dir, args))
-    end = time.time()
-    print(f"Data Processing complete. Total time taken: {(end - start):.2f}")
+    # preprocess_data(origData, args)
+    utils.run_parallel(preprocess_data(origData.data_dir, args))
+    end2= time.time()
+    print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
 if __name__=='__main__':
     main()
