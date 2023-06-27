@@ -1,0 +1,119 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from utils import *
+from data_loader import load_data
+
+def main():
+    args = get_main_args()
+    # set_granularity()
+    set_cuda_devices(args)
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+    #     seed_everything(args.seed)
+    # data_module = DataModule(args)
+    # data_module.setup()
+    ckpt_path = verify_ckpt_path(args)
+
+    if ckpt_path is not None:
+        model = NNUnet.load_from_checkpoint(ckpt_path, strict=False, args=args)
+    else:
+        model = NNUnet(args)
+        
+    # callbacks = [RichProgressBar(), ModelSummary(max_depth=2)]
+
+    # what does this do?
+    # if args.benchmark:
+    #     batch_size = args.batch_size if args.exec_mode == "train" else args.val_batch_size
+    #     filnename = args.logname if args.logname is not None else "perf.json"
+    #     callbacks.append(
+    #         LoggingCallback(
+    #             log_dir=args.results,
+    #             filnename=filnename,
+    #             global_batch_size=batch_size * args.gpus * args.nodes,
+    #             mode=args.exec_mode,
+    #             warmup=args.warmup,
+    #             dim=args.dim,
+    #         )
+    #     )
+    # elif args.exec_mode == "train":
+    #     if args.save_ckpt:
+    #         callbacks.append(
+    #             ModelCheckpoint(
+    #                 dirpath=f"{args.ckpt_store_dir}/checkpoints",
+    #                 filename="{epoch}-{dice:.2f}",
+    #                 monitor="dice",
+    #                 mode="max",
+    #                 save_last=True,
+    #             )
+    #         )
+
+    dataloaders = load_data(args.data, args.batch_size) ## ! NEED TO DEFINE batch_size somewhere! (and num_epochs) add to args?
+
+    # Define your loss function and optimizer
+    # ? where do we define these as well? args?
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+
+    # Train your model
+    if args.exec_mode == "train":
+        for epoch in range(args.num_epochs):
+            model.train()
+            for batch in dataloaders['train']:
+                inputs, labels = batch
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+    # Evaluate your model
+    if args.exec_mode == "evaluate":
+        model.eval()
+        for batch in dataloaders['val']:
+            inputs, labels = batch
+            outputs = model(inputs)
+            # Perform evaluation calculations
+
+    # Make predictions with your model
+    if args.exec_mode == "predict":
+        model.eval()
+        for batch in dataloaders['test']:
+            inputs = batch
+            outputs = model(inputs)
+            # Process the predictions
+
+# -----------------------------------------------------------------------------------------------------------
+# PYTORCH LIGHTNING CODE (from nnUnet)
+# -----------------------------------------------------------------------------------------------------------
+
+# benchmark?
+    if args.benchmark:
+        if args.exec_mode == "train":
+            trainer.fit(model, train_dataloaders=data_module.train_dataloader())
+        else:
+            # warmup
+            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
+            # benchmark run
+            model.start_benchmark = 1
+            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
+    elif args.exec_mode == "train":
+        trainer.fit(model, datamodule=data_module)
+    elif args.exec_mode == "evaluate":
+        trainer.validate(model, dataloaders=data_module.val_dataloader())
+    elif args.exec_mode == "predict":
+        if args.save_preds:
+            ckpt_name = "_".join(args.ckpt_path.split("/")[-1].split(".")[:-1])
+            dir_name = f"predictions_{ckpt_name}"
+            dir_name += f"_task={model.args.task}_fold={model.args.fold}"
+            if args.tta:
+                dir_name += "_tta"
+            save_dir = os.path.join(args.results, dir_name)
+            model.save_dir = save_dir
+            make_empty_dir(save_dir)
+        model.args = args
+        trainer.test(model, dataloaders=data_module.test_dataloader())
+
+
+if __name__ == "__main__":
+    main()
