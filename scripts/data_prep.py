@@ -75,6 +75,7 @@ def prepare_nifty(dataset):
     subjIDs = dataset.subjIDls
 
     modalities = dataset.modalities
+    img_shapes = {}
 
     for subj in subj_dirs:
         pth = os.path.join(data_dir, subj)
@@ -93,7 +94,6 @@ def prepare_nifty(dataset):
                     nib.save(seg, os.path.join(root, subj + "-lbl.nii.gz"))
                 else:
                     img_modality = []
-                    img_shapes = {}
                     for m, mname in enumerate(modalities):
                         print("Entering for loop 4: ", m, mname)
                         if not fileName.endswith(f"{mname}.nii.gz"):
@@ -102,7 +102,7 @@ def prepare_nifty(dataset):
                             globals()[f'{mname}'] = nib.load(os.path.join(root,fileName))
                             img_modality.append(globals()[f'{mname}'])
                             print((globals()[f'{mname}']).shape)
-                            img_shapes[f'{mname}']=img_modality[m].shape
+                            img_shapes[f'{subj}_{mname}']=img_modality[-1].shape
             print(img_modality)
             affine, header = img_modality[-1].affine, img_modality[-1].header
             res = header.get_zooms()
@@ -149,12 +149,12 @@ def file_prep(dataset, dataMode, train):
     if train:
         call(f"mkdir {lbls_path}", shell=True)
     
-    for root, dirs, files in os.walk(pth):
+    for root, dirs, files in os.walk(data_dir):
     #dirs = glob(os.path.join(data_dir, "BraTS*"))
         for d in dirs:
             images, labels = [], []
             for f in files:
-                if not f.endswith("-lbl.nii.gz") or not f.endswith("-stk.nii.gz"):
+                if not f.endswith("-lbl.nii.gz") and not f.endswith("-stk.nii.gz"):
                     continue
                 if "-lbl" in f:
                     labels.append(f)
@@ -180,7 +180,7 @@ def file_prep(dataset, dataMode, train):
     images = sorted([img.replace(data_dir + "/", "") for img in images])
     labels = sorted([lbl.replace(data_dir + "/", "") for lbl in labels])
     if train:
-        key = "training"
+        key = "train"
         data_pairs_fold = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
     else:
         key = "test"
@@ -242,7 +242,7 @@ def preprocess_data(dataset, args):
         pth = os.path.join(data_dir, subj)
         for root, dirs, files in os.walk(pth):
             for fileName in files:
-                if not f.endswith("-lbl.nii.gz") or not f.endswith("-stk.nii.gz"):
+                if not fileName.endswith("-lbl.nii.gz") or not fileName.endswith("-stk.nii.gz"):
                     continue
                 if fileName.endswith("-lbl.nii.gz"):
                     mask = nib.load(os.path.join(root,fileName))
@@ -278,7 +278,7 @@ def main():
     startT = time.time()
     prepare_nifty(origData)
     print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    train = True if args.prepoc_set == 'training' else False
+    train = True if args.preproc_set == 'training' else False
     file_prep(origData, args.data_grp, train)
     endT = time.time()
     print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
@@ -286,7 +286,8 @@ def main():
     startT2 = time.time()
     print("Beginning Preprocessing.")
     # preprocess_data(origData, args)
-    utils.run_parallel(preprocess_data(origData.data_dir, args))
+    metadata = json.load(open(os.path.join(data_dir, "dataset.json"),"r"))
+    utils.run_parallel(preprocess_data(origData, args), metadata, args)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 

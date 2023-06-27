@@ -16,8 +16,8 @@ def set_cuda_devices(args):
     device_list = ",".join([str(i) for i in range(args.gpus)])
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", device_list)
 
-def run_parallel(func, args):
-    return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
+def run_parallel(func, metadata,args):
+        return Parallel(n_jobs=args.n_jobs)(delayed(func)(pair) for pair in metadata[args.preproc_set])
 
 def extract_imagedata(nifty, dtype="int16"):
     if dtype == "int16":
@@ -49,7 +49,7 @@ def get_main_args(strings=None):
     arg = parser.add_argument
     
     # Data set allocatin and execution param
-    arg("--prepoc_set", type=str,
+    arg("--preproc_set", type=str,
         default="training", choices=["training", "val", "test"],
         help="Mode for data preprocessing"
     )
@@ -94,8 +94,8 @@ def get_main_args(strings=None):
 
 
     # # Cluster allocations
-    # arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default
-    # arg("--gpus", type=non_negative_int, default=1, help="Number of gpus")
+    arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default
+    arg("--gpus", type=non_negative_int, default=1, help="Number of gpus")
     # arg("--nodes", type=non_negative_int, default=1, help="Number of nodes")
     # arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
 
