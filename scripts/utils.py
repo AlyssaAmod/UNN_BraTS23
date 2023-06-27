@@ -9,8 +9,6 @@ import torch
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 
-
-
 def set_cuda_devices(args):
     assert args.gpus <= torch.cuda.device_count(), f"Requested {args.gpus} gpus, available {torch.cuda.device_count()}."
     device_list = ",".join([str(i) for i in range(args.gpus)])
