@@ -180,7 +180,7 @@ def file_prep(dataset, dataMode, train):
     images = sorted([img.replace(data_dir + "/", "") for img in images])
     labels = sorted([lbl.replace(data_dir + "/", "") for lbl in labels])
     if train:
-        key = "train"
+        key = "training"
         data_pairs_fold = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
     else:
         key = "test"
