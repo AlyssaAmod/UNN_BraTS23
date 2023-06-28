@@ -1,5 +1,4 @@
 from torchvision import transforms
-import albumentations as A
 import torchio as tio
 import torch
 import warnings
@@ -14,14 +13,14 @@ def define_transforms():
             transforms.RandomHorizontalFlip(p=0.3),
             transforms.RandomVerticalFlip(p=0.3)
         ]),
-        'fakeSSA': A.OneOf([
+        'fakeSSA': tio.OneOf([
             transforms.GaussianBlur(kernel_size=(21, 21), sigma=(0.5, 1.5)),
             tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
             transforms.ColorJitter(brightness=(0.8, 1.2)),
             tio.transforms.RandomMotion(num_transforms=3, image_interpolation='nearest'),
             tio.transforms.RandomBiasField(coefficients=1),
             tio.transforms.RandomGhosting(intensity=1.5)
-        ], p=0.5), # randomly apply ONE of these given transforms with prob 0.5 
+        ], p=0.8), # randomly apply ONE of these given transforms with prob 0.5 
         'val': transforms.Compose([
             # transforms.Resize(INPUT_SIZE)
         ]),

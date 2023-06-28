@@ -59,8 +59,7 @@ def main():
     if args.exec_mode == "train":
         for epoch in range(args.num_epochs):
             model.train()
-            for batch in dataloaders['train']:
-                inputs, labels = batch
+            for inputs, labels in dataloaders['train']:
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
@@ -70,8 +69,7 @@ def main():
     # Evaluate your model
     if args.exec_mode == "evaluate":
         model.eval()
-        for batch in dataloaders['val']:
-            inputs, labels = batch
+        for inputs, labels in dataloaders['val']:
             outputs = model(inputs)
             # Perform evaluation calculations
 
@@ -79,9 +77,13 @@ def main():
     if args.exec_mode == "predict":
         model.eval()
         for batch in dataloaders['test']:
+            # are there no masks in this loader? will this return an error?
             inputs = batch
             outputs = model(inputs)
             # Process the predictions
+
+            # process predictions here or get this to return the predicted probabilites and then
+            # use another script to process?
 
 # -----------------------------------------------------------------------------------------------------------
 # PYTORCH LIGHTNING CODE (from nnUnet)
