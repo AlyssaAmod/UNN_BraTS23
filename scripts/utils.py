@@ -86,7 +86,7 @@ def get_main_args(strings=None):
     arg("--save_ckpt", action="store_true", help="Enable saving checkpoint")
 
     # For preprocessing stacked nifty files
-    arg("--target_shape", type=list, default=[192, 224, 160], help="Target shape for cropOrPad")
+    arg("--target_shape", type=list, default=None, help="Target shape for cropOrPad")
     arg("--ohe", action="store_true", help="Add one-hot-encoding for foreground voxels (voxels > 0)")
     arg("--verbose", action="store_true")
 

@@ -32,7 +32,7 @@ def define_transforms():
 
     return data_transforms
 
-def transforms_preproc(label, ohe, target_shape):
+def transforms_preproc(image, ohe, target_shape):
     
     to_ras = tio.ToCanonical() # reorient to RAS+
     resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
@@ -47,15 +47,22 @@ def transforms_preproc(label, ohe, target_shape):
     apply_trans = {
         'checkRAS' : to_ras,
         'resampleTot1' : resample_t1space,
-        'oheZN' : tio.Compose([crop_pad, one_hot_enc, normalise_foreground]),
-        'brainmask' : tio.Compose([crop_pad, masked, normalise])
+        'crop_pad' : crop_pad,
+        'oheZN' : tio.Compose([one_hot_enc, normalise_foreground]),
+        'brainmask' : tio.Compose([ masked, normalise])
     }
 
-    preproc_trans = [to_ras, resample_t1space, crop_pad, 
-                     one_hot_enc, normalise_foreground,
-                     masked,normalise]
+        # Define the list of helper functions for the transformation pipeline
+    transform_pipeline = [
+        to_ras,
+        crop_pad,
+        one_hot_enc,
+        normalise_foreground,
+        masked,
+        normalise
+    ]
     
-    return apply_trans, preproc_trans
+    return apply_trans, transform_pipeline
 
 def apply_transforms(image, transforms, seed=42, show=False, exclude=None):
     torch.manual_seed(seed)
