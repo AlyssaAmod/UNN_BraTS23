@@ -94,8 +94,8 @@ def get_main_args(strings=None):
     # # Cluster allocations
     arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default
     arg("--gpus", type=non_negative_int, default=1, help="Number of gpus")
-    # arg("--nodes", type=non_negative_int, default=1, help="Number of nodes")
-    # arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
+    arg("--nodes", type=non_negative_int, default=1, help="Number of nodes")
+    arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
 
     # # Training parameters ************** TO COMPLETE NEXT WEEK***************
     # arg("--nfolds", type=positive_int, default=5, help="Number of cross-validation folds")
