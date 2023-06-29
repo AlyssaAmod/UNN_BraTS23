@@ -68,7 +68,7 @@ def get_main_args(strings=None):
     arg("--ckpt_store_dir", type=str, default="/results", help="Path for saving checkpoint")
     
     # Naming conventions & saving
-    arg("--modal", type=list, default=["t1c", "t1n", "t2f", "t2w"], help="List of modality abbreviations")
+    arg("--modal", type=list, default=["t1c", "t1n", "t2w", "t2f"], help="List of modality abbreviations")
     arg("--data_grp", type=str, default="ATr", help="Dataset used",
         choices={"ATr": "BraTS23_train",
                   "AV": "BraTS23_val",

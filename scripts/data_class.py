@@ -89,7 +89,8 @@ class MRIDataset(Dataset):
         return self.img_pth, self.seg_pth, self.proc_lbls, self.proc_imgs, self.imgs_npy, self.lbls_npy
     
     def get_subj_info(self):
-        self.subj_dir_pths, self.subj_dirs#, self.SSA
+        self.subj_dir_pths, self.subj_dirs
+        #, self.SSA
     
     def get_transforms(self):
         self.transform

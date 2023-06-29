@@ -63,32 +63,41 @@ def prepare_nifty(dataset):
             subj_info == subject IDs & dir paths
             image_info == shape & resolution data per subject per modality
             dataset == modality keys, segmentation keys, image-label pairs per subj
-        NifTI files:
+        NifTI files:.
             subjIDxxx-stk.nii.gz == stacked nifti img data 
             subjIDxxx-lbl.nii.gz == seg mask img data
 
     """
     data_dir = dataset.data_dir
-    subj_dir_pths, subj_dirs =(dataset.get_subj_info())
+    subj_dir_pths, subj_dirs = dataset.subj_dir_pths, dataset.subj_dirs
     img_pth, seg_pth = dataset.get_paths()[0:2]
 
     modalities = dataset.modalities
     img_shapes = {}
     res = {}
-    for subj in subj_dirs:
-        img_modality = []
-        for i in range(dataset.len(img_pth)):
-            if subj not in img_pth[i]:
-                break
-            print("subjID = ",subj)
-            for root, dirs, files in os.walk(img_pth[i]):
-                print("Entering subject directory: ", os.path.basename(root), "\nFile name ", files[0])
-                ext_dict_modal = {**{f"-{m}.nii.gz": img_modality for m in modalities}}
+    img_modality = []
+    ext_dict_modal = {**{f"-{m}.nii.gz": img_modality for m in modalities}}
+    print(ext_dict_modal)
+    # for i in range(dataset.__len__(img_pth)):
+
+    #     print(img_pth[i])
+    #     print("File is: ",os.path.basename(img_pth[i]))
+    for root, dirs, files in os.walk(data_dir):
+        for dir in dirs:
+            print("Subject is: ", dir)    
+            for file in files:
+                print("Entering subject directory: ",dir , "\nFile name ", file)
+                print(ext_dict_modal)
                 for ext, list_to_append in ext_dict_modal.items():
-                    if file.endswith(ext):
+                    if not file.endswith(ext):
+                        break
+                    else:
                         mod = ext.split("-")[-2]
+                        print(mod)
                         globals()[f'{mod}'] = nib.load(img_pth[i])
                         #img_modality.append(globals()[f'{mname}'])
+                        print(globals()[f'{mod}'])
+                        globals()[f'{mod}']
                         list_to_append.append(globals()[f'{mod}'])
                         print((globals()[f'{ext}']).shape)
                         img_shapes[f'{os.path.basename(root)}_{mod}']=list_to_append[-1].shape
@@ -97,22 +106,22 @@ def prepare_nifty(dataset):
         res[f'{os.path.basename(root)}_RES']=header.get_zooms()
         imgs = np.stack([extract_imagedata(img_modality[m]) for m in range(len(img_modality))], axis=-1)
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
-        nib.save(imgs, os.path.join(root, subj + "-stk.nii.gz"))
+        nib.save(imgs, os.path.join(root, os.path.basename(file) + "-stk.nii.gz"))
 
-        for i in range(dataset.len(seg_pth)):
-            if subj not in seg_pth[i]:
+    for i in range(dataset.len(seg_pth)):
+        if subj not in seg_pth[i]:
+            break
+        for root, dirs, files in os.walk(seg_pth[i]):
+            print("Entering subject directory: ", os.path.basename(root), "\nFile name ", files[0])
+            if not files[0].endswith("-seg.nii.gz"):
                 break
-            for root, dirs, files in os.walk(seg_pth[i]):
-                print("Entering subject directory: ", os.path.basename(root), "\nFile name ", files[0])
-                if not files[0].endswith("-seg.nii.gz"):
-                    break
-                seg = nib.load(seg_pth[i])
-                seg_affine, seg_header = seg.affine, seg.header
-                seg = extract_imagedata(seg, "unit8")
-                #seg[vol == 4] = 3 --> not sure what this does yet
-                seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-                print(seg.shape)
-                nib.save(seg, os.path.join(root,  subj + "-lbl.nii.gz"))
+            seg = nib.load(seg_pth[i])
+            seg_affine, seg_header = seg.affine, seg.header
+            seg = extract_imagedata(seg, "unit8")
+            #seg[vol == 4] = 3 --> not sure what this does yet
+            seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
+            print(seg.shape)
+            nib.save(seg, os.path.join(root,  subj + "-lbl.nii.gz"))
                              
     # save a few bits of info into a json 
     img_info = {
@@ -239,16 +248,14 @@ def preprocess_data(dataset, args, transList):
     subj_dirs = dataset.subj_dirs
     img_pth, seg_pth = dataset.get_paths()
     modalities = dataset.modalities
-    transList = transforms
+    
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir {outpath}", shell=True)
     imgs = []
     masks = []
     # Define the list of helper functions for the transformation pipeline
     transform_pipeline = transforms.transforms_preproc()[1]
-    for code, trans in transform_pipeline.items():
-        if code in transList:
-            apply_transforms(mask, code)
+
     for subj in subj_dirs:
         pth = os.path.join(data_dir, subj)
         for root, dirs, files in os.walk(pth):
