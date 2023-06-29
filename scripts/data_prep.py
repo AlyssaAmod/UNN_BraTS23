@@ -221,7 +221,7 @@ def file_prep(dataset, dataMode, train):
         json.dump(datasetFold, outfile)
 
 
-def preprocess_data(dataset, args, transforms=None):
+def preprocess_data(dataset, args, transList):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
     corresponding ground truth image.
@@ -245,8 +245,8 @@ def preprocess_data(dataset, args, transforms=None):
     imgs = []
     masks = []
     # Define the list of helper functions for the transformation pipeline
-    apply_trans, transform_pipeline = transforms.transforms_preproc()
-    for code, trans in apply_trans.items():
+    transform_pipeline = transforms.transforms_preproc()[1]
+    for code, trans in transform_pipeline.items():
         if code in transList:
             apply_transforms(mask, code)
     for subj in subj_dirs:
@@ -255,27 +255,20 @@ def preprocess_data(dataset, args, transforms=None):
             for fileName in files:
                 if not fileName.endswith("-lbl.nii.gz") and not fileName.endswith("-stk.nii.gz"):
                     break
+                proc_img = nib.load(os.path.join(root,fileName))
+                proc_img = extract_imagedata(proc_img)
+                proc_img_t = np.expand_dims(proc_img, axis=0)
+                for code, trans in transform_pipeline.items():
+                    if code in transList:
+                        proc_img_t = trans(proc_img_t)
+                print("Label file: ", fileName, "shape is: ", proc_img_t.shape) 
                 if fileName.endswith("-lbl.nii.gz"):
-                    mask = nib.load(os.path.join(root,fileName))
-                    mask = extract_imagedata(mask)
-                    mask_t = np.expand_dims(mask, axis=0)
-                    for code, trans in apply_trans.items():
-                        if code in transList:
-                            mask_t = apply_transforms(mask, apply_trans[code])
-                    np.save(os.path.join(outpath, subj + "-lbl.npy"), mask_t)
-                    masks.append(mask_t)
-                    # mask = apply_transforms(mask, apply_trans["oheZN"])                    
-                    print("Label file: ", fileName, "shape is: ", mask.shape)
-                    # mask_t = to_ras(mask_t)
-                    # mask_t = oheZN(mask_t)
-                elif fileName.endswith("-stk.nii.gz"):
-                    img = nib.load(os.path.join(root,fileName))
-                    img = extract_imagedata(img)
-                    img_t = np.expand_dims(img, axis=0)
-                    for code, trans in apply_trans.items():
-                        if code in transList:
-                            img_t = apply_transforms(img_t,apply_trans[code])
-                    np.save(os.path.join(outpath, subj + "-stk.npy"), img_t)
+                    np.save(os.path.join(outpath, subj + "-lbl.npy"), proc_img_t)
+                    masks.append(proc_img_t)
+
+                elif fileName.endswith("-stk.nii.gz"): 
+                    np.save(os.path.join(outpath, subj + "-stk.npy"), proc_img_t)
+                    imgs.append(proc_img_t)
         
     return imgs, masks
 
@@ -301,8 +294,15 @@ def main():
     print("Beginning Preprocessing.")
     startT2 = time.time()
     metadata = json.load(open(os.path.join(data_dir, "dataset.json"),"r"))
-    transL = ['checkRAS', 'crop_pad''oheZN']
-    utils.run_parallel(preprocess_data(prepData, args, transforms=transL), metadata, args)
+    transL = ['checkRAS', 'Znorm']
+        # transform_pipeline = {
+        # 'checkRAS' : to_ras,
+        # 'CropOrPad' : crop_pad,
+        # 'ohe' : one_hot_enc,
+        # 'ZnormFore' : normalise_foreground,
+        # 'MaskNorm' : masked,
+        # 'Znorm': normalise}
+    utils.run_parallel(preprocess_data(prepData, args, transList=[]), metadata, args)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 

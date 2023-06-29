@@ -43,23 +43,22 @@ def transforms_preproc(image, ohe, target_shape):
     normalise = tio.ZNormalization()
 
         
-    apply_trans = {
+    combo_trans = {
         'checkRAS' : to_ras,
         'resampleTot1' : resample_t1space,
         'crop_pad' : crop_pad,
         'oheZN' : tio.Compose([one_hot_enc, normalise_foreground]),
         'brainmask' : tio.Compose([ masked, normalise])
-    }
+        }
 
         # Define the list of helper functions for the transformation pipeline
-    transform_pipeline = [
-        to_ras,
-        crop_pad,
-        one_hot_enc,
-        normalise_foreground,
-        masked,
-        normalise
-    ]
+    transform_pipeline = {
+        'checkRAS' : to_ras,
+        'CropOrPad' : crop_pad,
+        'ohe' : one_hot_enc,
+        'ZnormFore' : normalise_foreground,
+        'MaskNorm' : masked,
+        'Znorm': normalise}
     
     return apply_trans, transform_pipeline
 
