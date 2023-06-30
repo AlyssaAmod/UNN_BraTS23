@@ -37,18 +37,19 @@ def transforms_preproc(target_shape=None):
     resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
     if target_shape != None:
         crop_pad = tio.CropOrPad(target_shape)
+    else:
+        crop_pad = None
     one_hot_enc = tio.OneHot(num_classes=4)
     normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
-    masked = tio.Mask(masking_method=tio.LabelMap(label))
+    # masked = tio.Mask(masking_method=tio.LabelMap(label))
     normalise = tio.ZNormalization()
 
         
     combo_trans = {
         'checkRAS' : to_ras,
         'resampleTot1' : resample_t1space,
-        'crop_pad' : crop_pad,
-        'oheZN' : tio.Compose([one_hot_enc, normalise_foreground]),
-        'brainmask' : tio.Compose([ masked, normalise])
+        'oheZN' : tio.Compose([one_hot_enc, normalise_foreground])
+        # 'brainmask' : tio.Compose([ masked, normalise])
         }
 
         # Define the list of helper functions for the transformation pipeline
@@ -57,7 +58,7 @@ def transforms_preproc(target_shape=None):
         'CropOrPad' : crop_pad,
         'ohe' : one_hot_enc,
         'ZnormFore' : normalise_foreground,
-        'MaskNorm' : masked,
+        # 'MaskNorm' : masked,
         'Znorm': normalise}
     
     return combo_trans, transform_pipeline
