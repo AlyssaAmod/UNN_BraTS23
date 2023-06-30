@@ -4,13 +4,14 @@ import torch.utils.data as data_utils
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
 from data_transforms import define_transforms
+from utils import get_main_args
 
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
 
-    data_dir = '/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData/'
-    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
-
+    data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
+    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
+    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('B')]
     batch_size = 8
 
     dataloaders = load_data(data_folders, batch_size)
@@ -42,7 +43,7 @@ def load_data(data_folders, batch_size):
     # fakeSSA transforms are applied to GLI data to worse their image quality
     image_datasets = {
     'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
-    'val': MRIDataset(val_files,transform=data_transforms['val']),
+    'val': MRIDataset(val_files, transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }
     # Create dataloaders
