@@ -85,37 +85,5 @@ def main():
             # process predictions here or get this to return the predicted probabilites and then
             # use another script to process?
 
-# -----------------------------------------------------------------------------------------------------------
-# PYTORCH LIGHTNING CODE (from nnUnet)
-# -----------------------------------------------------------------------------------------------------------
-
-# benchmark?
-    if args.benchmark:
-        if args.exec_mode == "train":
-            trainer.fit(model, train_dataloaders=data_module.train_dataloader())
-        else:
-            # warmup
-            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
-            # benchmark run
-            model.start_benchmark = 1
-            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
-    elif args.exec_mode == "train":
-        trainer.fit(model, datamodule=data_module)
-    elif args.exec_mode == "evaluate":
-        trainer.validate(model, dataloaders=data_module.val_dataloader())
-    elif args.exec_mode == "predict":
-        if args.save_preds:
-            ckpt_name = "_".join(args.ckpt_path.split("/")[-1].split(".")[:-1])
-            dir_name = f"predictions_{ckpt_name}"
-            dir_name += f"_task={model.args.task}_fold={model.args.fold}"
-            if args.tta:
-                dir_name += "_tta"
-            save_dir = os.path.join(args.results, dir_name)
-            model.save_dir = save_dir
-            make_empty_dir(save_dir)
-        model.args = args
-        trainer.test(model, dataloaders=data_module.test_dataloader())
-
-
 if __name__ == "__main__":
     main()
