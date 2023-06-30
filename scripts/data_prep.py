@@ -46,6 +46,12 @@ from utils import extract_imagedata
 from data_transforms import transforms_preproc
 from data_transforms import apply_transforms
 
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.float32):
+            return float(obj)
+        return super(NumpyEncoder, self).default(obj)
+
 def prepare_nifty(dataset):
     """ 
     This is the main data prepartion function. 
@@ -69,74 +75,66 @@ def prepare_nifty(dataset):
 
     """
     data_dir = dataset.data_dir
-    subj_dir_pths, subj_dirs = dataset.subj_dir_pths, dataset.subj_dirs
-    img_pth, seg_pth = dataset.get_paths()[0:2]
+    subj_dir_pths, subj_dirs = [],[]
+    img_pth, seg_pth = dataset.img_pth, dataset.seg_pth
 
     modalities = dataset.modalities
     img_shapes = {}
     res = {}
     img_modality = []
     ext_dict_modal = {**{f"-{m}.nii.gz": img_modality for m in modalities}}
-    print(ext_dict_modal)
-    # for i in range(dataset.__len__(img_pth)):
-
-    #     print(img_pth[i])
-    #     print("File is: ",os.path.basename(img_pth[i]))
+    
     for root, dirs, files in os.walk(data_dir):
-        for dir in dirs:
-            print("Subject is: ", dir)    
-            for file in files:
-                print("Entering subject directory: ",dir , "\nFile name ", file)
-                print(ext_dict_modal)
-                for ext, list_to_append in ext_dict_modal.items():
-                    if not file.endswith(ext):
-                        break
-                    else:
-                        mod = ext.split("-")[-2]
-                        print(mod)
-                        globals()[f'{mod}'] = nib.load(img_pth[i])
-                        #img_modality.append(globals()[f'{mname}'])
-                        print(globals()[f'{mod}'])
-                        globals()[f'{mod}']
-                        list_to_append.append(globals()[f'{mod}'])
-                        print((globals()[f'{ext}']).shape)
-                        img_shapes[f'{os.path.basename(root)}_{mod}']=list_to_append[-1].shape
-        print(img_modality)
-        affine, header = img_modality[-1].affine, img_modality[-1].header
-        res[f'{os.path.basename(root)}_RES']=header.get_zooms()
-        imgs = np.stack([extract_imagedata(img_modality[m]) for m in range(len(img_modality))], axis=-1)
-        imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
-        nib.save(imgs, os.path.join(root, os.path.basename(file) + "-stk.nii.gz"))
-
-    for i in range(dataset.len(seg_pth)):
-        if subj not in seg_pth[i]:
-            break
-        for root, dirs, files in os.walk(seg_pth[i]):
-            print("Entering subject directory: ", os.path.basename(root), "\nFile name ", files[0])
-            if not files[0].endswith("-seg.nii.gz"):
+        for directory in sorted(dirs, key=lambda x: x.lower(), reverse=True):
+            if not "BraTS-" in directory:
                 break
-            seg = nib.load(seg_pth[i])
-            seg_affine, seg_header = seg.affine, seg.header
-            seg = extract_imagedata(seg, "unit8")
-            #seg[vol == 4] = 3 --> not sure what this does yet
-            seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-            print(seg.shape)
-            nib.save(seg, os.path.join(root,  subj + "-lbl.nii.gz"))
-                             
+            else:
+                subj_id = str(directory)
+                print("Working on subj: ", subj_id)
+                subj_dir_pth = os.path.join(root,directory)
+                subj_dir_pths.append(subj_dir_pth)
+                #Load and stack modalities
+                print("Loading and stacking modalities")
+                img_paths = [os.path.join(subj_dir_pth, subj_id + f"-{m}.nii.gz") for m in modalities]
+                loaded_modalities = [nib.load(path) for path in img_paths]
+                t1n, t1c, t2w, t2f = loaded_modalities
+                img_modality.extend([t1n, t1c, t2w, t2f]) 
+                affine, header = t2f.affine, t2f.header
+                res[f'{os.path.basename(root)}_RES']=header.get_zooms()
+                imgs = np.stack([extract_imagedata(modality) for modality in loaded_modalities], axis=-1)
+                shapes = {modality: imgs[..., i].shape for i, modality in enumerate(modalities)}
+                img_shapes[f'{subj_id}'] = shapes
+                print("Image shapes: ", img_shapes)
+                imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
+                nib.save(imgs, os.path.join(subj_dir_pth, subj_id + "-stk.nii.gz"))
+                # Load and save seg
+                print("Loading and saving segmentation")
+
+                seg = nib.load(os.path.join(subj_dir_pth, subj_id + "-seg.nii.gz"))
+                seg_affine, seg_header = seg.affine, seg.header
+                seg = extract_imagedata(seg, "unit8")
+                #seg[vol == 4] = 3 --> not sure what this does yet
+                seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
+                print("Seg Shape", seg.shape)
+                nib.save(seg, os.path.join(subj_dir_pth, subj_id + "-lbl.nii.gz"))
+               
     # save a few bits of info into a json 
     img_info = {
         "img_shapes": img_shapes,
         "res": res,
-        "img_modalitypth": img_pth}
+        "img_modalitypth": img_pth
+        }
     print("Saving shape & resolution data per subject")
-    with open("image_info.json", "a") as file:
-        json.dump(img_info, file)
+    with open('img_info.json', 'w') as file:
+        json.dump(img_info, file, cls=NumpyEncoder)
                
     subj_info = {
-        "subjIDs" : subj_dirs
+        "nSubjs" : len(data_dir),
+        "subjIDs" : dataset.subj_dirs,
+        "subj_dirs" : dataset.subj_dir_pths
     }
     print("Saving SubjIDs")
-    with open(os.path.join(data_dir+"subj_info.json"), "a") as file:
+    with open(os.path.join(data_dir+"subj_info.json"), "w") as file:
         json.dump(subj_info,file)
 
 
@@ -156,13 +154,13 @@ def file_prep(dataset, dataMode, train):
 
     data_dir = dataset.data_dir
     modalities = dataset.modalities
-    stk, lbl = dataset.get_paths()[2:2]
-    subj_dirs = dataset.get_subj_info()[1]
+    stk, lbl = dataset.proc_imgs, dataset.proc_lbls
+    subj_dirs = dataset.subj_dirs
     
     stk_path, lbls_path = os.path.join(data_dir, f"images_orig-{dataMode}"), os.path.join(data_dir, f"labels_orig-{dataMode}")
-    call(f"mkdir {stk_path}", shell=True)
+    call(f"mkdir -p {stk_path}", shell=True)
     if train:
-        call(f"mkdir {lbls_path}", shell=True)
+        call(f"mkdir -p {lbls_path}", shell=True)
     
     imagesF, labelsF = [], []
 
@@ -170,7 +168,7 @@ def file_prep(dataset, dataMode, train):
         "-lbl.nii.gz": labelsF,
         "-stk.nii.gz": imagesF}
 
-    for subj in subj_dirs:
+    #for subj in subj_dirs:
         # for i in range(dataset.len(stk)):
         #     for j in range(dataset.len(lbl)):
         #         if subj not in stk[i] or lbl[j]:
@@ -183,16 +181,17 @@ def file_prep(dataset, dataMode, train):
         #                         if file.endswith(ext):
         #                         #print(file_pth)
         #                         list_to_append.append(os.path.join(root, file))
-        for root, dirs, files in os.walk(data_dir):
-            for f in files:
-                if not f.endswith("-lbl.nii.gz") and not f.endswith("-stk.nii.gz"):
-                    break
-                if "-lbl" in f:
-                    labelsF.append(f)
-                    call(f"copy {f} {lbls_path}", shell=True)
-                else:
-                    imagesF.append(f) 
-                    call(f"copy {f} {stk_path}", shell=True)
+    for i in range(len(lbl)):
+        file = os.path.basename(lbl[i])
+        d = os.path.dirname(lbl[i])
+        labelsF.append(os.path.join(d, file))
+        call(f"cp {lbl[i]} {lbls_path}", shell=True)
+    for i in range(len(stk)):
+        file = os.path.basename(stk[i])
+        d = os.path.dirname(stk[i])
+        imagesF.append(os.path.join(d, file))
+        call(f"cp {stk[i]} {stk_path}", shell=True)
+
     if train == "training":
         key = "training"
         data_pairs = [{"image": imgF, "label": lblF} for (imgF, lblF) in zip(imagesF, labelsF)]
@@ -244,44 +243,48 @@ def preprocess_data(dataset, args, transList):
     import itertools
 
     data_dir = dataset.data_dir
-    
-    subj_dirs = dataset.subj_dirs
-    img_pth, seg_pth = dataset.get_paths()
     modalities = dataset.modalities
+    stk, lbl = dataset.proc_imgs, dataset.proc_lbls
+    subj_dirs = dataset.subj_dirs
     
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
-    call(f"mkdir {outpath}", shell=True)
+    call(f"mkdir -p {outpath}", shell=True)
+    
     imgs = []
     masks = []
     # Define the list of helper functions for the transformation pipeline
-    transform_pipeline = transforms.transforms_preproc()[1]
-
-    for subj in subj_dirs:
-        pth = os.path.join(data_dir, subj)
-        for root, dirs, files in os.walk(pth):
-            for fileName in files:
-                if not fileName.endswith("-lbl.nii.gz") and not fileName.endswith("-stk.nii.gz"):
-                    break
-                proc_img = nib.load(os.path.join(root,fileName))
-                proc_img = extract_imagedata(proc_img)
-                proc_img_t = np.expand_dims(proc_img, axis=0)
-                for code, trans in transform_pipeline.items():
-                    if code in transList:
-                        proc_img_t = trans(proc_img_t)
-                print("Label file: ", fileName, "shape is: ", proc_img_t.shape) 
-                if fileName.endswith("-lbl.nii.gz"):
-                    np.save(os.path.join(outpath, subj + "-lbl.npy"), proc_img_t)
-                    masks.append(proc_img_t)
-
-                elif fileName.endswith("-stk.nii.gz"): 
-                    np.save(os.path.join(outpath, subj + "-stk.npy"), proc_img_t)
-                    imgs.append(proc_img_t)
+    transform_pipeline = transforms_preproc()[1]
+    
+    for i in range(len(lbl)):
+        # file = os.path.basename(lbl[i])
+        d = os.path.dirname(lbl[i])
+        proc_img = nib.load(lbl[i])
+        proc_img = extract_imagedata(proc_img)
+        proc_img_t = torch.from_numpy(proc_img)
+        proc_img_t = torch.unsqueeze(proc_img_t, axis=0)
+        for code, trans in transform_pipeline.items():
+            if code in transList:
+                proc_img_t = trans(proc_img_t)
+        np.save(os.path.join(data_dir, d, str(d) + "-lbl.npy"), proc_img_t)
+        masks.append(proc_img_t)
+    for i in range(len(stk)):
+        # file = os.path.basename(stk[i])
+        d = os.path.dirname(stk[i])
+        proc_img = nib.load(stk[i])
+        proc_img = extract_imagedata(proc_img)
+        proc_img_t = torch.from_numpy(proc_img)
+        # proc_img_t = np.expand_dims(proc_img, axis=0)
+        for code, trans in transform_pipeline.items():
+            if code in transList:
+                proc_img_t = trans(proc_img_t)
+        np.save(os.path.join(data_dir, str(d), str(d) + "-stk.npy"), proc_img_t)
+        imgs.append(proc_img_t)
         
     return imgs, masks
 
 def main():
     args = get_main_args()
-    utils.set_cuda_devices(args)
+    # utils.set_cuda_devices(args)
     modalities = args.modal
     data_dir = args.data
     task = args.task
@@ -292,7 +295,7 @@ def main():
     prepare_nifty(origData)
     
     print("Loaded all nifti files and saved image data \nSaving a copy to images and labels folders")
-    train = True if args.preproc_set == 'training' else False
+    train = args.preproc_set
     prepData = MRIDataset(data_dir, task, modalities=modalities)
     file_prep(prepData, args.data_grp, train)
     endT = time.time()
@@ -309,7 +312,8 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise}
-    utils.run_parallel(preprocess_data(prepData, args, transList=[]), metadata, args)
+    utils.run_parallel(preprocess_data(prepData, args, transList=transL), metadata, args)
+    # preprocess_data(prepData, args, transList=transL)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
