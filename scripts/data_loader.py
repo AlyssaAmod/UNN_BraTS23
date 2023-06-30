@@ -1,6 +1,8 @@
 import torch
 import os
 import torch.utils.data as data_utils
+import json
+
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
 from data_transforms import define_transforms
@@ -8,11 +10,26 @@ from utils import get_main_args
 
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
+    args = get_main_args()
+    # utils.set_cuda_devices(args)
+    modalities = args.modal
+    data_dir = args.data
+    task = args.task
 
-    data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
+    # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
     # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
-    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('B')]
-    batch_size = 8
+    
+    ###### AA: I removed this code because we already save the information in a json file
+    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
+
+    datasetInfo = json.load(open(data_dir,"dataset.json", "r"))
+    
+    data_folders = datasetInfo["img_folders"]
+    img_lbl_npy = datasetInfo["npy_pairPths"]
+    img_np_pth = datasetInfo["img_np_pth"]
+    mask_np_pth = datasetInfo["mask_np_pth"]
+
+    batch_size = args.batch_size
 
     dataloaders = load_data(data_folders, batch_size)
 

@@ -125,8 +125,8 @@ def prepare_nifty(dataset):
         "img_modalitypth": img_pth
         }
     print("Saving shape & resolution data per subject")
-    with open('img_info.json', 'w') as file:
-        json.dump(img_info, file, cls=NumpyEncoder)
+    with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
+        json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
                
     subj_info = {
         "nSubjs" : len(data_dir),
@@ -134,7 +134,7 @@ def prepare_nifty(dataset):
         "subj_dirs" : dataset.subj_dir_pths
     }
     print("Saving SubjIDs")
-    with open(os.path.join(data_dir+"subj_info.json"), "w") as file:
+    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
         json.dump(subj_info,file)
 
 
@@ -265,7 +265,7 @@ def preprocess_data(dataset, args, transList):
         for code, trans in transform_pipeline.items():
             if code in transList:
                 proc_img_t = trans(proc_img_t)
-        np.save(os.path.join(data_dir, d, str(d) + "-lbl.npy"), proc_img_t)
+        np.save(os.path.join(os.path.dirname(lbl[i]), str(d) + "-lbl.npy"), proc_img_t)
         masks.append(proc_img_t)
     for i in range(len(stk)):
         # file = os.path.basename(stk[i])
@@ -277,9 +277,25 @@ def preprocess_data(dataset, args, transList):
         for code, trans in transform_pipeline.items():
             if code in transList:
                 proc_img_t = trans(proc_img_t)
-        np.save(os.path.join(data_dir, str(d), str(d) + "-stk.npy"), proc_img_t)
+        np.save(os.path.join(os.path.dirname(stk[i]), str(d) + "-stk.npy"), proc_img_t)
         imgs.append(proc_img_t)
+    
+    dataNPY = MRIDataset(data_dir, args.task modalities=modalities)
+    img_npy = dataNPY.imgs_npy
+    mask_npy = dataNPY.lbls_npy
+    for f in range(len(img_npy))
+        call(f"cp {img_npy[i]} {outpath}", shell=True)
+        call(f"cp {mask_npy[i]} {outpath}", shell=True)
         
+    datasetNPY = {
+        "img_folders" : subj_dirs,
+        "img_np_pth" : img_npy,
+        "mask_np_pth" : mask_npy,
+        "npy_pairPths" : [{"image": img, "label": lbl} for (img, lbl) in zip(img_npy, mask_npy)]
+    }
+    with open(os.path.join(data_dir, "dataset.json"), "a") as outfile:
+        json.dump(datasetNPY, outfile)
+
     return imgs, masks
 
 def main():
