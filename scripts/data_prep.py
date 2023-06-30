@@ -280,10 +280,10 @@ def preprocess_data(dataset, args, transList):
         np.save(os.path.join(os.path.dirname(stk[i]), str(d) + "-stk.npy"), proc_img_t)
         imgs.append(proc_img_t)
     
-    dataNPY = MRIDataset(data_dir, args.task modalities=modalities)
+    dataNPY = MRIDataset(data_dir, args.task, modalities=modalities)
     img_npy = dataNPY.imgs_npy
     mask_npy = dataNPY.lbls_npy
-    for f in range(len(img_npy))
+    for f in range(len(img_npy)):
         call(f"cp {img_npy[i]} {outpath}", shell=True)
         call(f"cp {mask_npy[i]} {outpath}", shell=True)
         

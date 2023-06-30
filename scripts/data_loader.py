@@ -2,6 +2,7 @@ import torch
 import os
 import torch.utils.data as data_utils
 import json
+from subprocess import call
 
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
@@ -32,7 +33,6 @@ def main():
     batch_size = args.batch_size
 
     dataloaders = load_data(data_folders, batch_size)
-
     print(dataloaders)
     training_set = dataloaders['train']
 
@@ -49,7 +49,8 @@ def load_data(data_folders, batch_size):
 
     Returns dataloaders ready to be fed into model
     '''
-
+    outpath = os.path.join(data_dir, args.data_grp + "_trainingSplits")
+    call(f"mkdir -p {outpath}", shell=True)
     # Split data files
     train_files, val_files, test_files = split_data(data_folders, seed=42) # seed for reproducibiilty to get same split
     
@@ -63,6 +64,16 @@ def load_data(data_folders, batch_size):
     'val': MRIDataset(val_files, transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }
+
+    splitData = {
+        'subjsTr' : image_datasets['train'].subj_dirs,
+        'subjsVal' : image_datasets['val'].subj_dirs,
+        'subjsTest' : image_datasets['test'].subj_dirs    
+    }
+    
+    with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
+        json.dump(splitData, outfile)
+
     # Create dataloaders
     # can set num_workers for running sub-processes
     dataloaders = {
