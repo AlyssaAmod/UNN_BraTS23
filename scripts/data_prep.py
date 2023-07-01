@@ -300,7 +300,7 @@ def preprocess_data(dataset, args, transList):
 
 def main():
     args = get_main_args()
-    # utils.set_cuda_devices(args)
+    utils.set_cuda_devices(args)
     modalities = args.modal
     data_dir = args.data
     task = args.task
