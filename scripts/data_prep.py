@@ -30,20 +30,15 @@ from glob import glob
 import json
 import time
 from subprocess import call
-import random
 import nibabel as nib
 import numpy as np
 import torch
-from pathlib import Path
 import torchio as tio
-import torchvision.transforms as transforms
-import torch.utils.data as data_utils
 
 import utils
 from utils import get_main_args
 from utils import extract_imagedata
 from data_transforms import transforms_preproc
-from data_transforms import apply_transforms
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -80,7 +75,7 @@ def data_preparation(data_dir, args):
 
     data_dir = data_dir # path for each subject folder in the set
     modalities = args.modal
-    subj_dirs, subj_dir_pths = [],[],[]
+    subj_dirs, subj_dir_pths = [],[]
     # store images to load (paths)
     img_pth, seg_pth = [],[]
     file_ext_dict_prep = {
@@ -96,7 +91,6 @@ def data_preparation(data_dir, args):
             else:
                 subj_dirs.append(str(directory))
                 subj_dir_pths.append(os.path.join(root,directory))
-                SSA = 'SSA' in subj_dirs
         for file in files:
             file_pth = os.path.join(root, file)
             if os.path.isfile(file_pth) and args.task=='data_prep':
@@ -296,6 +290,8 @@ def preprocess_data(data_dir, args, transList):
     masks = []
     # Define the list of helper functions for the transformation pipeline
     transform_pipeline = transforms_preproc()[1]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=True):
         if not "BraTS-" in dir:
             break
@@ -304,7 +300,7 @@ def preprocess_data(data_dir, args, transList):
             if id_check == os.path.dirname(lbl[i]):
                 proc_lbl = nib.load(lbl[i])
                 proc_lbl = extract_imagedata(proc_lbl)
-                proc_lbl_t = torch.from_numpy(proc_lbl)
+                proc_lbl_t = (torch.from_numpy(proc_lbl)).to(device)
                 proc_lbl_t = torch.unsqueeze(proc_lbl_t, axis=0)
                 for code, trans in transform_pipeline.items():
                     if code in transList:
@@ -315,7 +311,7 @@ def preprocess_data(data_dir, args, transList):
             if id_check == os.path.dirname(stk[i]):            
                 proc_img = nib.load(stk[i])
                 proc_img = extract_imagedata(proc_img)
-                proc_img_t = torch.from_numpy(proc_img)
+                proc_img_t = (torch.from_numpy(proc_img)).to(device)
                 # proc_img_t = np.expand_dims(proc_img, axis=0)
                 for code, trans in transform_pipeline.items():
                     if code in transList:
@@ -344,6 +340,8 @@ def main():
     print("Generating stacked nifti files.")
     
     startT = time.time()
+    utils.run_parallel(data_preparation, [(data_dir, args)])
+
     data_preparation(data_dir, args)
     
     print("Loaded all nifti files and saved image data")
@@ -366,7 +364,7 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
-    utils.run_parallel(preprocess_data(data_dir, args, transList=transL), metadata, args)
+    utils.run_parallel(preprocess_data, [(data_dir, args, transL)])
     # preprocess_data(data_dir, args, transList=transL)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
