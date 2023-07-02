@@ -15,7 +15,7 @@ def set_cuda_devices(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", device_list)
 
 def run_parallel(func, metadata,args):
-        return Parallel(n_jobs=-1)(delayed(func)(pair) for pair in metadata[args.preproc_set])
+        return Parallel()(delayed(func)(pair) for pair in metadata[args.preproc_set])
 
 def extract_imagedata(nifty, dtype="int16"):
     if dtype == "int16":

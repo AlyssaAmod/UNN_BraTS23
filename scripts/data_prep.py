@@ -328,8 +328,8 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise}
-    utils.run_parallel(preprocess_data(prepData, args, transList=transL), metadata, args)
-    # preprocess_data(prepData, args, transList=transL)
+    # utils.run_parallel(preprocess_data(prepData, args, transList=transL), metadata, args)
+    preprocess_data(prepData, args, transList=transL)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
