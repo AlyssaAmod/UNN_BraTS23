@@ -9,13 +9,12 @@ import torchio
 import utils
 from utils import get_main_args
 
-# args = get_main_args()
 class MRIDataset(Dataset):
     args=get_main_args()
     # Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
     # folder structure: subjectID/image.nii, seg.nii (i.e. contains 2 files)
-    def __init__(self, data_dir, task='other', modalities=args.modal, transform=None, SSAtransform=None):
-        self.data_dir = data_dir # path for each data folder in the set
+    def __init__(self, subj_dirL, task=args.task, modalities=args.modal, transform=None, SSAtransform=None):
+        self.data_dir = subj_dirL # path for each subject folder in the set
         self.modalities = modalities
         self.task = task
 

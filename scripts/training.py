@@ -87,3 +87,25 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+"""
+Typical training loop for a NN from Pytorch classifier [tutorial](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html):
+"""
+
+for epoch in range(2):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    for i, data in enumerate(trainloader, 0): # loop over the samples in the dataset 
+        inputs, labels = data
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+
