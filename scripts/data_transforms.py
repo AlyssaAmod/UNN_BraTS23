@@ -14,9 +14,9 @@ def define_transforms():
             transforms.RandomVerticalFlip(p=0.3)
         ]),
         'fakeSSA': tio.OneOf([
-            transforms.GaussianBlur(kernel_size=(21, 21), sigma=(0.5, 1.5)),
+            tio.transforms.RandomBlur(std=(0.5, 1.5)),
             tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
-            transforms.ColorJitter(brightness=(0.8, 1.2)),
+            # transforms.ColorJitter(brightness=(0.8, 1.2)),
             tio.transforms.RandomMotion(num_transforms=3, image_interpolation='nearest'),
             tio.transforms.RandomBiasField(coefficients=1),
             tio.transforms.RandomGhosting(intensity=1.5)
