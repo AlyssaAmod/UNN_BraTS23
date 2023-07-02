@@ -73,7 +73,7 @@ def data_preparation(data_dir, args):
     
     # Step 1: Initialisation
 
-    data_dir = data_dir # path for each subject folder in the set
+    #data_dir = args.data # path for each subject folder in the set
     modalities = args.modal
     subj_dirs, subj_dir_pths = [],[]
     # store images to load (paths)
@@ -85,19 +85,24 @@ def data_preparation(data_dir, args):
     #Loop through main data folder to generate lists of paths
     print(f"Generating dataset paths from data folder: {data_dir}")
     for root, dirs, files in os.walk(data_dir):
-        for directory in sorted(dirs, key=lambda x: x.lower(), reverse=True):
+        for directory in sorted(dirs, key=lambda x: x.lower(), reverse=False):
             if not "BraTS-" in directory:
                 break
             else:
                 subj_dirs.append(str(directory))
                 subj_dir_pths.append(os.path.join(root,directory))
+        print("Total Number of Subjects is: ", len(subj_dirs))
         for file in files:
             file_pth = os.path.join(root, file)
             if os.path.isfile(file_pth) and args.task=='data_prep':
+                # print(file_pth)
                 for ext, list_to_append in file_ext_dict_prep.items():
                     if file.endswith(ext):
-                        #print(file_pth)
-                        list_to_append.append(file_pth)
+                        # print(file_pth)
+                        list_to_append.append(file_pth)        
+
+    for k,v in file_ext_dict_prep.items():
+        file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
     print(f"Saving path lists to file: {args.preproc_set}_paths.json")
     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'w') as file:
         json.dump(file_ext_dict_prep, file)
@@ -116,7 +121,7 @@ def data_preparation(data_dir, args):
         "-lbl.nii.gz": proc_lbls
     }
     
-    for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower(), reverse=True):
+    for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in sub_dir:
             break
         subj_id = os.path.basename(sub_dir)
@@ -136,7 +141,7 @@ def data_preparation(data_dir, args):
         imgs = np.stack([extract_imagedata(modality) for modality in loaded_modalities], axis=-1)
         shapes = {modality: imgs[..., i].shape for i, modality in enumerate(modalities)}
         img_shapes[f'{subj_id}'] = shapes
-        print("Image shapes: ", img_shapes)
+        print("Image shapes: ", img_shapes[f'{subj_id}'])
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))               
@@ -193,8 +198,8 @@ def file_prep(data_dir, dataMode, args):
     filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths.json', "r"))
     subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
 
-    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=True)
-    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=True)
+    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=False)
+    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
     subj_dirs = subjInfo["subj_dirs"]
     subj_id = subjInfo["subjIDs"]
     
@@ -209,7 +214,7 @@ def file_prep(data_dir, dataMode, args):
         "-stk.nii.gz": imagesF
     }
 
-    for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=True):
+    for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in dir:
             break
         id_check = os.path.basename(dir)
@@ -273,11 +278,11 @@ def preprocess_data(data_dir, args, transList):
 
     # return img as list of arrays, and mask as before
 
-    filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths.json', "r"))
+    filePaths = json.load(open(data_dir,f'{args.preproc_set}_paths.json', "r"))
     subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
 
-    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=True)
-    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=True)
+    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=False)
+    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
     subj_dirs = subjInfo["subj_dirs"]
     subj_id = subjInfo["subjIDs"]
 
@@ -292,7 +297,7 @@ def preprocess_data(data_dir, args, transList):
     transform_pipeline = transforms_preproc()[1]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=True):
+    for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in dir:
             break
         id_check = os.path.basename(dir)
@@ -340,7 +345,7 @@ def main():
     print("Generating stacked nifti files.")
     
     startT = time.time()
-    utils.run_parallel(data_preparation, [(data_dir, args)])
+    utils.run_parallel(data_preparation(data_dir, args),[data_dir, args])
 
     data_preparation(data_dir, args)
     
@@ -355,7 +360,7 @@ def main():
 
     print("Beginning Preprocessing.")
     startT2 = time.time()
-    metadata = json.load(open(os.path.join(data_dir, "dataset.json"),"r"))
+    # metadata = json.load(open(os.path.join(data_dir, "dataset.json"),"r"))
     transL = ['checkRAS', 'Znorm']
         # OPTIONS ARE:
         # 'checkRAS' : to_ras,
@@ -364,7 +369,7 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
-    utils.run_parallel(preprocess_data, [(data_dir, args, transL)])
+    utils.run_parallel(preprocess_data(data_dir, args, transL),[data_dir, args, transL])
     # preprocess_data(data_dir, args, transList=transL)
     end2= time.time()
     print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")

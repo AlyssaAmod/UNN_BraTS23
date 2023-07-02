@@ -1,13 +1,12 @@
 
-salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=16G --ntasks=2 --account=def-training-wa --nodes=2
+salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=16G --ntasks=2 --account=def-training-wa
 
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
-data_dir=/scratch/guest187/BraTS_Africa_data/ALL_TrainingData
-results_dir=/scratch/guest187/BraTS_Africa_data/ALL_TrainingData/results
-chkpt_store=/scratch/guest187/BraTS_Africa_data/ALL_TrainingData/checkpoints
-# chkpt=/scratch/guest187/Hackathon/BraTS_2021_data/RSNA_ASNR_MICCAI_BraTS2021_TrainingData_16July2021/results_smlMdl/checkpoints/epoch=95-dice=89.61.ckpt
-git=/home/guest187/AlyGit/UNN_BraTS23/scripts
+data_dir=/scratch/guest187/Data/train_all
+results_dir=/scratch/guest187/Data/train_all/results
+chkpt_store=/scratch/guest187/Data/train_all/checkpoints
+git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 
 nvidia-smi
 
