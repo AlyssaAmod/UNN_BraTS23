@@ -91,16 +91,15 @@ def data_preparation(data_dir, args):
             else:
                 subj_dirs.append(str(directory))
                 subj_dir_pths.append(os.path.join(root,directory))
-        print("Total Number of Subjects is: ", len(subj_dirs))
         for file in files:
             file_pth = os.path.join(root, file)
             if os.path.isfile(file_pth) and args.task=='data_prep':
-                # print(file_pth)
+                print(os.path.dirname(file_pth))
                 for ext, list_to_append in file_ext_dict_prep.items():
                     if file.endswith(ext):
                         # print(file_pth)
                         list_to_append.append(file_pth)        
-
+    print("Total Number of Subjects is: ", len(subj_dirs))
     for k,v in file_ext_dict_prep.items():
         file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
     print(f"Saving path lists to file: {args.preproc_set}_paths.json")
@@ -144,7 +143,9 @@ def data_preparation(data_dir, args):
         print("Image shapes: ", img_shapes[f'{subj_id}'])
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
-        proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))               
+        proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
+        del imgs
+        del shapes              
         
     # Step 3: Load and save seg
         print("Loading and saving segmentation")
@@ -155,20 +156,21 @@ def data_preparation(data_dir, args):
         seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
         print("Seg Shape", seg.shape)
         nib.save(seg, os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
-        proc_lbls.append(os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))               
+        proc_lbls.append(os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
+        del seg               
     # save a few bits of info into a json 
     
-    with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'a') as file:
+    with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
     
-    print("Saving shape & resolution data per subject")
-    img_info = {
-        "img_shapes": img_shapes,
-        "res": res,
-        "all_paths": img_pth
-        }
-    with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
-        json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
+    # print("Saving shape & resolution data per subject")
+    # img_info = {
+    #     "img_shapes": img_shapes,
+    #     "res": res,
+    #     "all_paths": img_pth
+    #     }
+    # with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
+    #     json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
 
     print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
     subj_info = {
@@ -195,7 +197,7 @@ def file_prep(data_dir, dataMode, args):
     """
 
     modalities = args.modal
-    filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths.json', "r"))
+    filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths2.json', "r"))
     subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
 
     stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=False)

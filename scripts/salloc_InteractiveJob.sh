@@ -1,5 +1,5 @@
 
-salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=16G --ntasks=2 --account=def-training-wa
+salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=32G --ntasks=2 --account=def-training-wa --nodes 2
 
 module load python/3.9
 source /home/guest187/hackathon/bin/activate

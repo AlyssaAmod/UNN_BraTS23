@@ -31,7 +31,7 @@ class MRIDataset(Dataset):
                         # Save segmentation mask (file path)
                         if file.endswith("-lbl.npy"):
                             self.lbls.append(os.path.join(img_folder, file))
-                        elif file.endswith("-stk.npy")
+                        elif file.endswith("-stk.npy"):
                             # Save image (file path)
                             self.imgs.append(os.path.join(img_folder, file))
 
