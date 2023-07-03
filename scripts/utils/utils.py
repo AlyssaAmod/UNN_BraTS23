@@ -107,7 +107,8 @@ def get_main_args(strings=None):
     arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size")
     arg("--depth", type=non_negative_int, default=5, help="The depth of the encoder")                                       # <---------- CHANGE default
     arg("--batch_size", type=positive_int, default=8, help="Batch size")                                                    # <---------- CHANGE default
-    arg("--optimizer", type=str, default="adam", choices=["sgd", "adam"], help="Optimizer",)
+    arg("--optimiser", type=str, default="adam", choices=["sgd", "adam"], help="Optimiser",)
+    arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
 
     # arg("--val_batch_size", type=positive_int, default=4, help="Validation batch size")                                     # <---------- CHANGE default
     # arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
