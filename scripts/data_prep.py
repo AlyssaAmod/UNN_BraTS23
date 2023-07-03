@@ -34,6 +34,7 @@ import nibabel as nib
 import numpy as np
 import torch
 import torchio as tio
+import logging
 
 import utils
 from utils import get_main_args
@@ -45,6 +46,7 @@ class NumpyEncoder(json.JSONEncoder):
         if isinstance(obj, np.float32):
             return float(obj)
         return super(NumpyEncoder, self).default(obj)
+
 
 
 def data_preparation(data_dir, args):
@@ -83,7 +85,7 @@ def data_preparation(data_dir, args):
         "-seg.nii.gz": seg_pth}
 
     #Loop through main data folder to generate lists of paths
-    print(f"Generating dataset paths from data folder: {data_dir}")
+    logging.info(f"Generating dataset paths from data folder: {data_dir}")
     for root, dirs, files in os.walk(data_dir):
         for directory in sorted(dirs, key=lambda x: x.lower(), reverse=False):
             if not "BraTS-" in directory:
@@ -94,20 +96,20 @@ def data_preparation(data_dir, args):
         for file in files:
             file_pth = os.path.join(root, file)
             if os.path.isfile(file_pth) and args.task=='data_prep':
-                print(os.path.dirname(file_pth))
+                logging.info(os.path.dirname(file_pth))
                 for ext, list_to_append in file_ext_dict_prep.items():
                     if file.endswith(ext):
-                        # print(file_pth)
+                        # logging.info(file_pth)
                         list_to_append.append(file_pth)        
-    print("Total Number of Subjects is: ", len(subj_dirs))
+    logging.info("Total Number of Subjects is: ", len(subj_dirs))
     for k,v in file_ext_dict_prep.items():
         file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
-    print(f"Saving path lists to file: {args.preproc_set}_paths.json")
+    logging.info(f"Saving path lists to file: {args.preproc_set}_paths.json")
     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'w') as file:
         json.dump(file_ext_dict_prep, file)
 
     # Step 2: Stack modalities into 1 nii file, and extract header information
-    print("Preparing stacked nifty files")
+    logging.info("Preparing stacked nifty files")
 
     img_shapes = {}
     res = {}
@@ -124,10 +126,10 @@ def data_preparation(data_dir, args):
         if not "BraTS-" in sub_dir:
             break
         subj_id = os.path.basename(sub_dir)
-        print("Working on subj: ", subj_id)
+        logging.info("Working on subj: ", subj_id)
         
     #Load nifti file for each scanning sequence
-        print("Loading and stacking modalities")
+        logging.info("Loading and stacking modalities")
         img_paths = [s for s in img_pth if subj_id in s]
         loaded_modalities = [nib.load(path) for path in img_paths]
         t1n, t1c, t2w, t2f = loaded_modalities
@@ -140,7 +142,7 @@ def data_preparation(data_dir, args):
         imgs = np.stack([extract_imagedata(modality) for modality in loaded_modalities], axis=-1)
         shapes = {modality: imgs[..., i].shape for i, modality in enumerate(modalities)}
         img_shapes[f'{subj_id}'] = shapes
-        print("Image shapes: ", img_shapes[f'{subj_id}'])
+        logging.info("Image shapes: ", img_shapes[f'{subj_id}'])
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
@@ -148,13 +150,13 @@ def data_preparation(data_dir, args):
         del shapes              
         
     # Step 3: Load and save seg
-        print("Loading and saving segmentation")
+        logging.info("Loading and saving segmentation")
         seg = nib.load(os.path.join(sub_dir, subj_id + "-seg.nii.gz"))
         seg_affine, seg_header = seg.affine, seg.header
         seg = extract_imagedata(seg, "unit8")
         #seg[vol == 4] = 3 --> not sure what this does yet
         seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-        print("Seg Shape", seg.shape)
+        logging.info("Seg Shape", seg.shape)
         nib.save(seg, os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
         proc_lbls.append(os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
         del seg               
@@ -163,7 +165,7 @@ def data_preparation(data_dir, args):
     with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
     
-    # print("Saving shape & resolution data per subject")
+    # logging.info("Saving shape & resolution data per subject")
     # img_info = {
     #     "img_shapes": img_shapes,
     #     "res": res,
@@ -172,7 +174,7 @@ def data_preparation(data_dir, args):
     # with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
     #     json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
 
-    print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
+    logging.info("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
     subj_info = {
         "nSubjs" : len(subj_dirs),
         "subjIDs" : subj_dirs,
@@ -348,27 +350,28 @@ def preprocess_data(data_dir, args, transList):
 
 
 def main():
+    logging.basicConfig(filename='data_prep.log', filemode='w', level=logging.DEBUG)
     args = get_main_args()
     utils.set_cuda_devices(args)
     data_dir = args.data
     
-    print("Generating stacked nifti files.")
+    logging.info("Generating stacked nifti files.")
     
     startT = time.time()
     utils.run_parallel(data_preparation(data_dir, args),[data_dir, args])
 
     data_preparation(data_dir, args)
     
-    print("Loaded all nifti files and saved image data")
-    print("Saving a copy to images and labels folders")
+    logging.info("Loaded all nifti files and saved image data")
+    logging.info("Saving a copy to images and labels folders")
     
     train = args.preproc_set
     file_prep(data_dir, args.data_grp, train)
     endT = time.time()
     
-    print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
-    print("Beginning Preprocessing.")
+    logging.info("Beginning Preprocessing.")
     startT2 = time.time()
     # metadata = json.load(open(os.path.join(data_dir, "dataset.json"),"r"))
     transL = ['checkRAS', 'Znorm']
@@ -382,7 +385,7 @@ def main():
     utils.run_parallel(preprocess_data(data_dir, args, transL),[data_dir, args, transL])
     # preprocess_data(data_dir, args, transList=transL)
     end2= time.time()
-    print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
+    logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
 if __name__=='__main__':
     main()
