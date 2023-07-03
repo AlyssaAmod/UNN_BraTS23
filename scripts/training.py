@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from utils import *
+from nnunet.nn_unet import NNUnet
+from utils.utils import *
 from data_loader import load_data
 
 def main():
@@ -48,7 +49,7 @@ def main():
     #             )
     #         )
 
-    dataloaders = load_data(args.data, args.batch_size) ## ! NEED TO DEFINE batch_size somewhere! (and num_epochs) add to args?
+    dataloaders = load_data(args.data, args.batch_size)
 
     # Define your loss function and optimizer
     # ? where do we define these as well? args?
