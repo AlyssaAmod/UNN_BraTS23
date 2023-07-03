@@ -35,7 +35,7 @@ import numpy as np
 import torch
 import torchio as tio
 
-import utils.utils as utils
+import utils
 from utils import get_main_args
 from utils import extract_imagedata
 from data_transforms import transforms_preproc
@@ -164,18 +164,18 @@ def data_preparation(data_dir, args):
     with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
     
-    # print("Saving shape & resolution data per subject")
-    # img_info = {
-    #     "img_shapes": img_shapes,
-    #     "res": res,
-    #     "all_paths": img_pth
-    #     }
-    # with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
-    #     json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
+    print("Saving shape & resolution data per subject")
+    img_info = {
+        "img_shapes": img_shapes,
+        "res": res,
+        "all_paths": img_pth
+        }
+    with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
+        json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
     del img_shapes
     del res
     del img_pth
-    return subj_dir_pths
+    return 
 
 
 def file_prep(data_dir, dataMode, args):
