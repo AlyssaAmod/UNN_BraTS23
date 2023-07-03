@@ -43,9 +43,18 @@ To run the code on your local machine, or via Compute Canada, folder structure s
 - source data provided: xxx/data/val/Nifty (TBC)
 - Mapping file: xxx/data/BraTS2023_2017_GLI_Mapping.xlsx
 
-data preparation outputs: TBD
+data preparation outputs: 
+    - data/train/subj/
+        - subjxxx-stk.nii : the stacked volumes from T1n, T1c, T2w, T2f (in that order)
+        - subjxxx-stk.npy : initial pre-processed stacked files == check RAS and normalise; main pre-process must include croporpad
+        - subjxxx-lbl.nii : extracted seg file img data
+        - subjxxx-lbl.npy : initial pre-processed seg file == MUST MATCH stk.npy transformations AT ALL TIMES
 
-data pre-processing outputs: TBD
+data augmentation outputs: currently nothing is saved
+    - BRaTS23 GLI TRAIN DATA - some augmented to mimic poor quality data from SSA
+    - BraTS23 SSA TRAIN DATA - ??? augmentations applied ??? TBD
+    - BraTS23 GLI VALIDATION DATA - should be changed to BraTS fake SSA data to be used as a validation set
+    - 
 
 segmentation masks generated: TBD
 

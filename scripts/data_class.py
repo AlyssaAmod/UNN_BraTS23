@@ -9,13 +9,73 @@ import torchio
 import utils
 from utils import get_main_args
 
-# args = get_main_args()
 class MRIDataset(Dataset):
-    args=get_main_args()
-    # Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
-    # folder structure: subjectID/image.nii, seg.nii (i.e. contains 2 files)
-    def __init__(self, data_dir, task='other', modalities=args.modal, transform=None, SSAtransform=None):
-        self.data_dir = data_dir # path for each data folder in the set
+    """
+    Given a set of images and corresponding labels (i.e will give it all training images + labels, and same for val and test)
+    folder structure: subjectID/image.nii, seg.nii (i.e. contains 2 files)
+    """
+
+    def __init__(self, data_folders, transform=None, SSAtransform=None):
+            self.data_folders = data_folders # path for each data folder in the set
+            self.transform = transform
+            self.SSAtransform = SSAtransform
+            self.imgs = [] # store images to load (paths)
+            self.lbls = [] # store corresponding labels (paths)
+            # run through each subjectID folder
+            for img_folder in data_folders:
+                # check if current file is from SSA dataset
+                self.SSA = True if 'SSA' in img_folder else False
+                for file in os.list(img_folder):
+                    # check folder contents
+                    if os.path.isfile(os.path.join(img_folder, file)):
+                        # Save segmentation mask (file path)
+                        if file.endswith("-lbl.npy"):
+                            self.lbls.append(os.path.join(img_folder, file))
+                        elif file.endswith("-stk.npy")
+                            # Save image (file path)
+                            self.imgs.append(os.path.join(img_folder, file))
+
+    def __len__(self):
+        # Return the amount of images in this set
+        return len(self.imgs)
+    
+    def __getitem__(self, idx):
+
+        # Load files
+        image = np.load(self.imgs[idx])
+        mask = np.load(self.lbls[idx])
+
+        # Convert to tensor
+        image = torch.from_numpy(image) # 4, 240, 240, 155
+        mask = torch.from_numpy(mask) # 240, 240, 155
+
+        if self.transform is not None: # Apply general transformations
+            # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
+            img = self.transform(img)
+            mask = self.transform(mask)
+        if self.SSA == False and self.SSAtransform is not None: # Apply transformation to GLI data to reduce quality (creating fake SSA data)
+            # transforms such as blur, noise etc are NOT applied to mask as well
+            img = self.SSAtransform(img)
+        
+        return img, mask
+    
+    def get_paths(self):
+        return self.img_pth, self.seg_pth, self.proc_lbls, self.proc_imgs, self.imgs_npy, self.lbls_npy
+    
+    def get_subj_info(self):
+        return self.subj_dir_pths, self.subj_dirs
+        #, self.SSA
+    
+    def get_transforms(self):
+        return self.transform
+
+
+############ THIS SECTION WILL BE REMOVED ##########
+"""
+AA __init__ : delete below once copied to local system
+
+    def __init__(self, subj_dirL, task=args.task, modalities=args.modal, transform=None, SSAtransform=None):
+        self.data_dir = subj_dirL # path for each subject folder in the set
         self.modalities = modalities
         self.task = task
 
@@ -61,54 +121,4 @@ class MRIDataset(Dataset):
                         if file.endswith(ext):
                             #print(file_pth)
                             list_to_append.append(file_pth)
-
-    def __len__(self, listName):
-        # Return the amount of images in this set
-        return len(listName)
-    
-    def __getitem__(self, idx):
-
-        # Load files
-        image = np.load(self.imgs_npy[idx])
-        mask = np.load(self.lbls_npy[idx])
-
-        # Convert to tensor
-        image = torch.from_numpy(image) # 4, 240, 240, 155
-        mask = torch.from_numpy(mask) # 240, 240, 155
-
-        if self.transform is not None: # Apply general transformations
-            # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
-            img = self.transform(img)
-            mask = self.transform(mask)
-        if self.SSA == False and self.SSAtransform is not None: # Apply transformation to GLI data to reduce quality (creating fake SSA data)
-            # transforms such as blur, noise etc are NOT applied to mask as well
-            img = self.SSAtransform(img)
-        
-        return img, mask
-    
-    def get_paths(self):
-        return self.img_pth, self.seg_pth, self.proc_lbls, self.proc_imgs, self.imgs_npy, self.lbls_npy
-    
-    def get_subj_info(self):
-        return self.subj_dir_pths, self.subj_dirs
-        #, self.SSA
-    
-    def get_transforms(self):
-        return self.transform
-
-
-############# OLD CODE -- DEL #########
-
-        # # run through each subjectID folder
-        # for img_folder in data_dir:
-        #     # check if current file is from SSA dataset
-        #     self.SSA = True if 'SSA' in img_folder else False
-        #     for file in os.list(img_folder):
-        #         # check folder contents
-        #         if os.path.isfile(os.path.join(img_folder, file)):
-        #             # Save segmentation mask (file path)
-        #             if file.endswith("-seg.nii.gz"):
-        #                 self.lbls.append(os.path.join(img_folder, file))
-        #             else:
-        #                 # Save image (file path)
-        #                 self.imgs.append(os.path.join(img_folder, file))
+"""

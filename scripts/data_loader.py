@@ -32,16 +32,16 @@ def main():
 
     batch_size = args.batch_size
 
-    dataloaders = load_data(data_folders, batch_size)
+    dataloaders = load_data(data_folders, batch_size, args)
     print(dataloaders)
     training_set = dataloaders['train']
-
+    
     for img, label in training_set:
         print(img.shape)
         print(label.shape)
     
 # MAIN FUNCTION TO USE
-def load_data(data_folders, batch_size):
+def load_data(data_folders, batch_size, args):
     '''
     Input:
     data_folders : list of all available data files
@@ -49,7 +49,7 @@ def load_data(data_folders, batch_size):
 
     Returns dataloaders ready to be fed into model
     '''
-    outpath = os.path.join(data_dir, args.data_grp + "_trainingSplits")
+    outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
     call(f"mkdir -p {outpath}", shell=True)
     # Split data files
     train_files, val_files, test_files = split_data(data_folders, seed=42) # seed for reproducibiilty to get same split
