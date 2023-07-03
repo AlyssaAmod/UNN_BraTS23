@@ -30,16 +30,19 @@ from glob import glob
 import json
 import time
 from subprocess import call
+import logging
+
 import nibabel as nib
 import numpy as np
 import torch
 import torchio as tio
-import logging
 
-import utils.utils as utils
-from utils import get_main_args
-from utils import extract_imagedata
+from utils.utils import get_main_args
+from utils.utils import extract_imagedata
+from utils.utils import run_parallel
+from utils.utils import set_cuda_devices
 from data_transforms import transforms_preproc
+
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -164,7 +167,16 @@ def data_preparation(data_dir, args):
     
     with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
-    
+
+    logging.info("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
+    subj_info = {
+        "nSubjs" : len(subj_dirs),
+        "subjIDs" : subj_dirs,
+        "subj_dirs" : subj_dir_pths
+    }
+    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
+        json.dump(subj_info,file)
+
     # logging.info("Saving shape & resolution data per subject")
     img_info = {
         "img_shapes": img_shapes,
@@ -193,7 +205,6 @@ def file_prep(data_dir, dataMode, args):
             "training": [{"image": "images/subjIDxxx.nii.gz", "label": "labels/subjIDxxx_seg.nii.gz"}
     """
 
-    modalities = args.modal
     filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths2.json', "r"))
     subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
 
@@ -201,15 +212,6 @@ def file_prep(data_dir, dataMode, args):
     lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
     subj_dirs = subjInfo["subj_dirs"]
     subj_id = subjInfo["subjIDs"]
-
-    print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
-    subj_info = {
-        "nSubjs" : len(subj_dirs),
-        "subjIDs" : subj_dirs,
-        "subj_dirs" : subj_dir_pths
-    }
-    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
-        json.dump(subj_info,file)
     
     stk_path, lbls_path = os.path.join(data_dir, f"images_orig-{dataMode}"), os.path.join(data_dir, f"labels_orig-{dataMode}")
     call(f"mkdir -p {stk_path}", shell=True)
@@ -245,19 +247,7 @@ def file_prep(data_dir, dataMode, args):
 
     modality = {"0": "t1n", "1": "t1c", "2": "t2w", "3": "t2f"}
     labels_dict = {"0": "background", "1": "NCR", "2": "ED", "3": "ET"}
-
-    # **********These path pairs are not needed for data_loader or training--> this is for incase it is needed
-    images, labels = glob(os.path.join(stk_path, "*")), glob(os.path.join(lbls_path, "*"))
-    images = sorted([img.replace(data_dir + "/", "") for img in images])
-    labels = sorted([lbl.replace(data_dir + "/", "") for lbl in labels])
-    if args.preproc_set == "training":
-        key = "training"
-        data_pairs_fold = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
-    else:
-        key = "test"
-        data_pairs_fold = [{"image": img} for img in images]
-
-    # sAve some json files for dataloading
+    # save some json files for dataloading
     dataset = {
         "labels": labels_dict,
         "modality": modality,
@@ -265,6 +255,19 @@ def file_prep(data_dir, dataMode, args):
         key: data_pairs}
     with open(os.path.join(data_dir, "dataset.json"), "w") as outfile:
         json.dump(dataset, outfile)
+
+    # **********These path pairs are not needed for data_loader or training--> this is for incase it is needed
+    images, labels = glob(os.path.join(stk_path, "*")), glob(os.path.join(lbls_path, "*"))
+    
+    images = sorted([img.replace(data_dir + "/", "") for img in images])
+    labels = sorted([lbl.replace(data_dir + "/", "") for lbl in labels])
+    
+    if args.preproc_set == "training":
+        key = "training"
+        data_pairs_fold = [{"image": img, "label": lbl} for (img, lbl) in zip(images, labels)]
+    else:
+        key = "test"
+        data_pairs_fold = [{"image": img} for img in images]
 
     datasetFold = {
         "labels": labels_dict,
@@ -356,13 +359,13 @@ def preprocess_data(data_dir, args, transList):
 def main():
     logging.basicConfig(filename='data_prep.log', filemode='w', level=logging.DEBUG)
     args = get_main_args()
-    utils.set_cuda_devices(args)
+    set_cuda_devices(args)
     data_dir = args.data
     
     logging.info("Generating stacked nifti files.")
     
     startT = time.time()
-    utils.run_parallel(data_preparation(data_dir, args),[data_dir, args])
+    run_parallel(data_preparation(data_dir, args),[data_dir, args])
 
     data_preparation(data_dir, args)
     
@@ -386,7 +389,7 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
-    utils.run_parallel(preprocess_data(data_dir, args, transL),[data_dir, args, transL])
+    run_parallel(preprocess_data(data_dir, args, transL),[data_dir, args, transL])
     # preprocess_data(data_dir, args, transList=transL)
     end2= time.time()
     logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
