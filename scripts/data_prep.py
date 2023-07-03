@@ -91,19 +91,19 @@ def data_preparation(data_dir, args):
     for root, dirs, files in os.walk(data_dir):
         for directory in sorted(dirs, key=lambda x: x.lower(), reverse=False):
             if not "BraTS-" in directory:
-                break
+                continue
             else:
                 subj_dirs.append(str(directory))
                 subj_dir_pths.append(os.path.join(root,directory))
         for file in files:
             file_pth = os.path.join(root, file)
             if os.path.isfile(file_pth) and args.task=='data_prep':
-                logging.info(os.path.dirname(file_pth))
+                logging.info(f'{os.path.dirname(file_pth)}')
                 for ext, list_to_append in file_ext_dict_prep.items():
                     if file.endswith(ext):
                         # logging.info(file_pth)
                         list_to_append.append(file_pth)        
-    logging.info("Total Number of Subjects is: ", len(subj_dirs))
+    logging.info(f"Total Number of Subjects is: {len(subj_dirs)}")
     for k,v in file_ext_dict_prep.items():
         file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
     logging.info(f"Saving path lists to file: {args.preproc_set}_paths.json")
@@ -115,8 +115,6 @@ def data_preparation(data_dir, args):
 
     img_shapes = {}
     res = {}
-    img_modality = []
-    ext_dict_modal = {**{f"-{m}.nii.gz": img_modality for m in modalities}}
     # store paths
     proc_imgs, proc_lbls = [],[]
     file_ext_dict_prep2 = {
@@ -126,16 +124,18 @@ def data_preparation(data_dir, args):
     
     for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in sub_dir:
-            break
+            continue
         subj_id = os.path.basename(sub_dir)
-        logging.info("Working on subj: ", subj_id)
+
+        if os.path.isfile(os.path.join(sub_dir, subj_id + "-stk.nii.gz")) and os.path.isfile(os.path.join(sub_dir, subj_id + "-lbl.nii.gz")):
+            continue
+        logging.info(f"Working on subj: {subj_id}")
         
     #Load nifti file for each scanning sequence
         logging.info("Loading and stacking modalities")
         img_paths = [s for s in img_pth if subj_id in s]
         loaded_modalities = [nib.load(path) for path in img_paths]
         t1n, t1c, t2w, t2f = loaded_modalities
-        img_modality.extend([t1n, t1c, t2w, t2f]) 
         affine, header = t2f.affine, t2f.header
         
         res[f'{subj_id}_RES']=header.get_zooms()
@@ -144,13 +144,12 @@ def data_preparation(data_dir, args):
         imgs = np.stack([extract_imagedata(modality) for modality in loaded_modalities], axis=-1)
         shapes = {modality: imgs[..., i].shape for i, modality in enumerate(modalities)}
         img_shapes[f'{subj_id}'] = shapes
-        logging.info("Image shapes: ", img_shapes[f'{subj_id}'])
+        logging.info(f"Image shapes: {img_shapes[f'{subj_id}']}")
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         del imgs
         del shapes
-        del img_modality            
         
     # Step 3: Load and save seg
         logging.info("Loading and saving segmentation")
@@ -159,7 +158,7 @@ def data_preparation(data_dir, args):
         seg = extract_imagedata(seg, "unit8")
         #seg[vol == 4] = 3 --> not sure what this does yet
         seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-        logging.info("Seg Shape", seg.shape)
+        logging.info(f"Seg Shape: {seg.shape}")
         nib.save(seg, os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
         proc_lbls.append(os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
         del seg               
@@ -168,7 +167,7 @@ def data_preparation(data_dir, args):
     with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
 
-    logging.info("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
+    logging.info(f"Saving subject folder paths and list of IDs. Total subjects is: {len(subj_dirs)}")    
     subj_info = {
         "nSubjs" : len(subj_dirs),
         "subjIDs" : subj_dirs,
@@ -188,8 +187,6 @@ def data_preparation(data_dir, args):
     del img_shapes
     del res
     del img_pth
-    return 
-
 
 def file_prep(data_dir, dataMode, args):
     """ 
@@ -226,7 +223,7 @@ def file_prep(data_dir, dataMode, args):
 
     for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in dir:
-            break
+            continue
         id_check = os.path.basename(dir)
         for i in range(len(subj_id)):
             if id_check == os.path.dirname(lbl[i]):
@@ -315,7 +312,7 @@ def preprocess_data(data_dir, args, transList):
 
     for dir in sorted(subj_dirs, key=lambda x: x.lower(), reverse=False):
         if not "BraTS-" in dir:
-            break
+            continue
         id_check = os.path.basename(dir)
         for i in range(len(subj_id)):
             if id_check == os.path.dirname(lbl[i]):
