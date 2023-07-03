@@ -268,6 +268,11 @@ def file_prep(data_dir, dataMode, args):
     with open(os.path.join(data_dir, "datasetFold.json"), "w") as outfile:
         json.dump(datasetFold, outfile)
 
+    del data_pairs_fold
+    del dataset
+    del imagesF
+    del labelsF
+
 def preprocess_data(data_dir, args, transList):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
@@ -315,6 +320,8 @@ def preprocess_data(data_dir, args, transList):
                 np.save(os.path.join(dir, id_check + "-lbl.npy"), proc_lbl_t)
                 lbls_npy.append(os.path.join(dir, id_check + "-lbl.npy"))
                 masks.append(proc_lbl_t)
+            del proc_lbl
+            del proc_lbl_t
             if id_check == os.path.dirname(stk[i]):            
                 proc_img = nib.load(stk[i])
                 proc_img = extract_imagedata(proc_img)
@@ -326,6 +333,8 @@ def preprocess_data(data_dir, args, transList):
                 np.save(os.path.join(dir, id_check + "-stk.npy"), proc_img_t)
                 imgs_npy.append(os.path.join(dir, id_check + "-stk.npy"))
                 imgs.append(proc_img_t)
+            del proc_img
+            del proc_img_t
     
         
     datasetNPY = {
@@ -337,7 +346,6 @@ def preprocess_data(data_dir, args, transList):
     with open(os.path.join(data_dir, "dataset.json"), "a") as outfile:
         json.dump(datasetNPY, outfile)
 
-    return imgs, masks
 
 def main():
     args = get_main_args()
