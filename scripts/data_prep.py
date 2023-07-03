@@ -35,7 +35,7 @@ import numpy as np
 import torch
 import torchio as tio
 
-import utils
+import utils.utils as utils
 from utils import get_main_args
 from utils import extract_imagedata
 from data_transforms import transforms_preproc
@@ -105,7 +105,7 @@ def data_preparation(data_dir, args):
     print(f"Saving path lists to file: {args.preproc_set}_paths.json")
     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'w') as file:
         json.dump(file_ext_dict_prep, file)
-
+    del file_ext_dict_prep
     # Step 2: Stack modalities into 1 nii file, and extract header information
     print("Preparing stacked nifty files")
 
@@ -145,7 +145,8 @@ def data_preparation(data_dir, args):
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         proc_imgs.append(os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
         del imgs
-        del shapes              
+        del shapes
+        del img_modality            
         
     # Step 3: Load and save seg
         print("Loading and saving segmentation")
@@ -171,15 +172,10 @@ def data_preparation(data_dir, args):
     #     }
     # with open(os.path.join(data_dir, 'img_info.json'), 'w') as file:
     #     json.dump(img_info, os.path.join(data_dir,file), cls=NumpyEncoder)
-
-    print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
-    subj_info = {
-        "nSubjs" : len(subj_dirs),
-        "subjIDs" : subj_dirs,
-        "subj_dirs" : subj_dir_pths
-    }
-    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
-        json.dump(subj_info,file)
+    del img_shapes
+    del res
+    del img_pth
+    return subj_dir_pths
 
 
 def file_prep(data_dir, dataMode, args):
@@ -204,6 +200,15 @@ def file_prep(data_dir, dataMode, args):
     lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
     subj_dirs = subjInfo["subj_dirs"]
     subj_id = subjInfo["subjIDs"]
+
+    print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
+    subj_info = {
+        "nSubjs" : len(subj_dirs),
+        "subjIDs" : subj_dirs,
+        "subj_dirs" : subj_dir_pths
+    }
+    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
+        json.dump(subj_info,file)
     
     stk_path, lbls_path = os.path.join(data_dir, f"images_orig-{dataMode}"), os.path.join(data_dir, f"labels_orig-{dataMode}")
     call(f"mkdir -p {stk_path}", shell=True)
