@@ -7,7 +7,7 @@ from subprocess import call
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
 from data_transforms import define_transforms
-from utils import get_main_args
+from utils.utils import get_main_args
 
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
@@ -23,12 +23,16 @@ def main():
     ###### AA: I removed this code because we already save the information in a json file
     # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
 
-    datasetInfo = json.load(open(data_dir,"dataset.json", "r"))
+    datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
+
+    print(datasetInfo)
     
     data_folders = datasetInfo["img_folders"]
     img_lbl_npy = datasetInfo["npy_pairPths"]
     img_np_pth = datasetInfo["img_np_pth"]
     mask_np_pth = datasetInfo["mask_np_pth"]
+
+    print(data_folders)
 
     batch_size = args.batch_size
 

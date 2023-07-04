@@ -2,12 +2,11 @@
 import torch
 import os
 import numpy as np
+from utils.utils import get_main_args
 from torch.utils.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
 import torchio
-import utils
-from utils import get_main_args
 
 class MRIDataset(Dataset):
     """

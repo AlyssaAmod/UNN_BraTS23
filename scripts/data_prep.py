@@ -51,7 +51,75 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         return super(NumpyEncoder, self).default(obj)
 
-def path_prep(data_dir, args):
+# def path_prep(data_dir, args):
+#     # Step 1: Initialisation
+#     data_dir = args.data # path for each subject folder in the set
+#     modalities = args.modal
+#     subj_dirs, subj_dir_pths = [],[]
+#     # store images to load (paths)
+#     img_pth, seg_pth = [],[]
+#     file_ext_dict_prep = {
+#         **{f"-{m}.nii.gz": img_pth for m in modalities},
+#         "-seg.nii.gz": seg_pth}
+
+#     #Loop through main data folder to generate lists of paths
+#     logging.info(f"Generating dataset paths from data folder: {data_dir}")
+#     for root, dirs, files in os.walk(data_dir):
+#         for directory in sorted(dirs, key=lambda x: x.lower(), reverse=False):
+#             if not "BraTS-" in directory:
+#                 continue
+#             else:
+#                 subj_dirs.append(str(directory))
+#                 subj_dir_pths.append(os.path.join(root,directory))
+#         for file in files:
+#             file_pth = os.path.join(root, file)
+#             if os.path.isfile(file_pth) and args.task=='data_prep':
+#                 logging.info(f'{os.path.dirname(file_pth)}')
+#                 for ext, list_to_append in file_ext_dict_prep.items():
+#                     if file.endswith(ext):
+#                         # logging.info(file_pth)
+#                         list_to_append.append(file_pth)        
+#     logging.info(f"Total Number of Subjects is: {len(subj_dirs)}")
+#     # for k,v in file_ext_dict_prep.items():
+#     #     file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
+    
+#     logging.info(f"Saving path lists to file: {args.preproc_set}_paths.json")
+#     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), "w") as file:
+#         json.dump(file_ext_dict_prep, file)
+    
+#     logging.info(f"Saving subject folder paths and list of IDs. Total subjects is: {len(subj_dirs)}")    
+#     subj_info = {
+#         "nSubjs" : len(subj_dirs),
+#         "subjIDs" : subj_dirs,
+#         "subj_dirs" : subj_dir_pths
+#     }
+#     with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
+#         json.dump(subj_info,file)
+#     # return img_pth
+
+def data_preparation(data_dir, args):
+    
+    """ 
+    This is the main data prepartion function. 
+    It extracts the the image data from each volume and then stacks all modalities into one file.
+    It then applies standard image preprocessing such as one hot encoding, realignment to RAS+ Z normalisation
+    data_loader and trainer will work with these files.
+    Input:
+        dataset class
+        args
+        # OLD: 
+            path to directory containing folders of subject IDs
+            list of modalities
+    Output:
+        JSON files:]
+            subj_info == subject IDs & dir paths
+            image_info == shape & resolution data per subject per modality
+            dataset == modality keys, segmentation keys, image-label pairs per subj
+        NifTI files:.
+            subjIDxxx-stk.nii.gz == stacked nifti img data 
+            subjIDxxx-lbl.nii.gz == seg mask img data
+
+    """
     # Step 1: Initialisation
     data_dir = args.data # path for each subject folder in the set
     modalities = args.modal
@@ -80,8 +148,8 @@ def path_prep(data_dir, args):
                         # logging.info(file_pth)
                         list_to_append.append(file_pth)        
     logging.info(f"Total Number of Subjects is: {len(subj_dirs)}")
-    for k,v in file_ext_dict_prep.items():
-        file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
+    # for k,v in file_ext_dict_prep.items():
+    #     file_ext_dict_prep[k] = sorted(v, key=lambda x: x.lower())
     
     logging.info(f"Saving path lists to file: {args.preproc_set}_paths.json")
     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), "w") as file:
@@ -95,41 +163,17 @@ def path_prep(data_dir, args):
     }
     with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
         json.dump(subj_info,file)
-
-def data_preparation(data_dir, args):
     
-    """ 
-    This is the main data prepartion function. 
-    It extracts the the image data from each volume and then stacks all modalities into one file.
-    It then applies standard image preprocessing such as one hot encoding, realignment to RAS+ Z normalisation
-    data_loader and trainer will work with these files.
-    Input:
-        dataset class
-        args
-        # OLD: 
-            path to directory containing folders of subject IDs
-            list of modalities
-    Output:
-        JSON files:]
-            subj_info == subject IDs & dir paths
-            image_info == shape & resolution data per subject per modality
-            dataset == modality keys, segmentation keys, image-label pairs per subj
-        NifTI files:.
-            subjIDxxx-stk.nii.gz == stacked nifti img data 
-            subjIDxxx-lbl.nii.gz == seg mask img data
-
-    """
+    del subj_info
+    del file_ext_dict_prep
 # Step 2: Stack modalities into 1 nii file, and extract header information
     logging.info("Preparing stacked nifty files")
-    data_dir = args.data # path for each subject folder in the set
-    modalities = args.modal
-
-    img_pth = json.load(open(os.path.join(data_dir,f'{args.preproc_set}_paths.json'), "r"))
-
-    subjInfo = json.load(open(os.path.join(data_dir,'subj_info.json'), "r"))
-
-    subj_dir_pths = subjInfo["subj_dirs"]
-    subj_id = subjInfo["subjIDs"]
+    # path for each subject folder in the set
+    # modalities = args.modal
+    # img_pth = json.load(open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), "r"))
+    # subjInfo = json.load(open(os.path.join(data_dir,'subj_info.json'), "r"))
+    # subj_dir_pths = subjInfo["subj_dirs"]
+    # subj_id = subjInfo["subjIDs"]
 
     img_shapes = {}
     res = {}
@@ -185,9 +229,8 @@ def data_preparation(data_dir, args):
         del seg               
     # save a few bits of info into a json 
     
-    with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), "a") as file:
+    with open(os.path.join(data_dir, f'{args.preproc_set}_pathsSTK.json'), "w") as file:
         json.dump(file_ext_dict_prep2, file)
-
 
 
     logging.info("Saving shape & resolution data per subject")
@@ -198,6 +241,8 @@ def data_preparation(data_dir, args):
         }
     with open(os.path.join(data_dir, 'img_info.json'), "a") as file:
         json.dump(img_info, file, cls=NumpyEncoder)
+    del file_ext_dict_prep2
+    del img_info
 
 
 def file_prep(data_dir, dataMode, args):
@@ -286,7 +331,7 @@ def file_prep(data_dir, dataMode, args):
     with open(os.path.join(data_dir, "datasetFold.json"), "a") as outfile:
         json.dump(datasetFold, outfile)
 
-def preprocess_data(data_dir, args, transList):
+def preprocess_data(subj_dirs, subj_id, stk, lbl, transList):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
     corresponding ground truth image.
@@ -297,17 +342,7 @@ def preprocess_data(data_dir, args, transList):
     # mask is 3d array
 
     # return img as list of arrays, and mask as before
-    print("collecting files")
-    filePaths = json.load(open(data_dir,f'{args.preproc_set}_paths.json', "r"))
-    subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
 
-    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=False)
-    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
-    subj_dirs = subjInfo["subj_dirs"]
-    subj_id = subjInfo["subjIDs"]
-
-    outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
-    call(f"mkdir -p {outpath}", shell=True)
     imgs_npy = []
     lbls_npy = []
 
@@ -357,22 +392,22 @@ def preprocess_data(data_dir, args, transList):
         "mask_np_pth" : lbls_npy,
         "npy_pairPths" : [{"image": img, "label": lbl} for (img, lbl) in zip(imgs_npy, lbls_npy)]
     }
-    with open(os.path.join(data_dir, "dataset.json"), "a") as outfile:
+    with open(os.path.join(os.path.dirname(subj_dirs[0]), "dataset.json"), "a") as outfile:
         json.dump(datasetNPY, outfile)
 
 
 def main():
     logging.basicConfig(filename='data_prep_0407.log', filemode='w', level=logging.DEBUG)
-    args = utils.utils.get_main_args()
+    args = get_main_args()
     utils.utils.set_cuda_devices(args)
     data_dir = args.data
     print(data_dir)
     logging.info("Generating stacked nifti files.")
     
     startT = time.time()
-    path_prep(data_dir, args)
+    # img_pth = path_prep(data_dir, args)
     print("path prep done")
-    utils.utils.run_parallel(data_preparation(data_dir, args),[data_dir, args])
+    data_preparation(data_dir, args),[data_dir, args]
     
     logging.info("Loaded all nifti files and saved image data")
     logging.info("Saving a copy to images and labels folders")
@@ -394,7 +429,18 @@ def main():
         # 'ZnormFore' : normalise_foreground,
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
-    utils.utils.run_parallel(preprocess_data(data_dir, args, transL),[data_dir, args, transL])
+    print("collecting files")
+    filePaths = json.load(open(data_dir,f'{args.preproc_set}_pathsSTK.json', "r"))
+    subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
+
+    stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=False)
+    lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=False)
+    subj_dirs = subjInfo["subj_dirs"]
+    subj_id = subjInfo["subjIDs"]
+
+    outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
+    call(f"mkdir -p {outpath}", shell=True)
+    run_parallel(preprocess_data(subj_dirs, subj_id, stk, lbl, transL),[subj_dirs, subj_id, stk, lbl, transL])
     # preprocess_data(data_dir, args, transList=transL)
     end2= time.time()
     logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
