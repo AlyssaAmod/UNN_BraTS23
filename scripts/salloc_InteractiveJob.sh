@@ -1,5 +1,5 @@
 
-salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=32G --ntasks=2 --account=def-training-wa --nodes 2
+# salloc --time=2:0:0 --gpus-per-node=t4:2 --cpus-per-task=16 --mem=32G --ntasks=2 --account=def-training-wa --nodes 2
 
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
@@ -21,3 +21,4 @@ python3 $git/data_prep.py --task data_prep --data $data_dir --data_grp ATr --gpu
 # pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda120
 # pip install -r /home/guest187/nnUNet/requirements.txt 
 # python -c "import nvidia.dali"
+nvidia-smi

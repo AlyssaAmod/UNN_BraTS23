@@ -128,6 +128,7 @@ def get_main_args(strings=None):
     # arg("--warmup", type=non_negative_int, default=5, help="Warmup iterations before collecting statistics")
     # arg("--min_fmap", type=non_negative_int, default=4, help="Minimal dimension of feature map in the bottleneck")
     # arg("--deep_supr_num", type=non_negative_int, default=2, help="Number of deep supervision heads")
+
     if strings is not None:
         arg(
             "strings",
@@ -135,7 +136,6 @@ def get_main_args(strings=None):
             nargs="*",
             help="String for searching",
         )
-        args = parser. for_namespaces([])
         args = parser.parse_args(strings.split())
     else:
         args = parser.parse_args()
@@ -144,6 +144,7 @@ def get_main_args(strings=None):
             args = vars(args)
             args.update(config)
             args = Namespace(**args)
+
 
     # with open(f"{args.results}/params.json", "w") as f:
     #     json.dump(vars(args), f)
