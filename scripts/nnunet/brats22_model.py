@@ -43,7 +43,7 @@ def get_conv(in_channels, out_channels, kernel_size, stride, dim=3, bias=False):
     return conv(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
 
 
-def get_transp_conv(in_channels, out_channels, kernel_size, stride, dim):
+def get_transp_conv(in_channels, out_channels, kernel_size, stride, dim): # for upsampling?
     conv = convolutions[f"ConvTranspose{dim}d"]
     padding = get_padding(kernel_size, stride)
     output_padding = get_output_padding(kernel_size, stride, padding)
@@ -73,7 +73,7 @@ class InputBlock(nn.Module):
         self.conv1 = get_conv(in_channels, out_channels, 3, 1)
         self.conv2 = get_conv(out_channels, out_channels, 3, 1)
         self.norm = get_norm(kwargs["norm"], out_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)  # Relu is changed to Leaky Relu in optimized UNet
 
     def forward(self, x):
         x = self.conv1(x)
