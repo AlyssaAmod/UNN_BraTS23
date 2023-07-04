@@ -13,24 +13,22 @@ def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
     args = get_main_args()
     # utils.set_cuda_devices(args)
-    modalities = args.modal
     data_dir = args.data
-    task = args.task
-
     # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
     # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
     
-    ###### AA: I removed this code because we already save the information in a json file
-    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
+    # Use for testing data loaders until dataset.json is available
+    # QUESTION: what is the if not any statement checking for if this is meant to create file paths to subject folders?
+    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
 
-    datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
+    # datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
 
-    print(datasetInfo)
+    # print(datasetInfo)
     
-    data_folders = datasetInfo["img_folders"]
-    img_lbl_npy = datasetInfo["npy_pairPths"]
-    img_np_pth = datasetInfo["img_np_pth"]
-    mask_np_pth = datasetInfo["mask_np_pth"]
+    # data_folders = datasetInfo["img_folders"]
+    # img_lbl_npy = datasetInfo["npy_pairPths"]
+    # img_np_pth = datasetInfo["img_np_pth"]
+    # mask_np_pth = datasetInfo["mask_np_pth"]
 
     print(data_folders)
 

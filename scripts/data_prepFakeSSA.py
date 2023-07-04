@@ -44,7 +44,15 @@ from utils.utils import get_main_args
 from data_transforms import transforms_preproc
 from data_transforms import define_transforms
 
+def get_data(nifty, dtype="int16"):
+    if dtype == "int16":
+        data = np.abs(nifty.get_fdata().astype(np.int16))
+        data[data == -32768] = 0
+        return data
+    return nifty.get_fdata().astype(np.uint8)
 
+def run_parallel(func, args):
+    return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
 
 def preprocess_data(transList):
     '''

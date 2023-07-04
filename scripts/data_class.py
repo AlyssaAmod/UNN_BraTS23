@@ -47,19 +47,20 @@ class MRIDataset(Dataset):
         # Convert to tensor
         image = torch.from_numpy(image) # 4, 240, 240, 155
         mask = torch.from_numpy(mask) # 240, 240, 155
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         if self.transform is not None: # Apply general transformations
             # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
-            img = self.transform(img)
-            mask = self.transform(mask)
+            image = self.transform(image.to(device))
+            mask = self.transform(mask.to(device))
         if self.SSA == False and self.SSAtransform is not None: # Apply transformation to GLI data to reduce quality (creating fake SSA data)
             # transforms such as blur, noise etc are NOT applied to mask as well
-            img = self.SSAtransform(img)
+            image = self.SSAtransform(image.to(device))
         
-        return img, mask
+        return image, mask
     
     def get_paths(self):
-        return self.img_pth, self.seg_pth, self.proc_lbls, self.proc_imgs, self.imgs_npy, self.lbls_npy
+        return self.img_pth, self.seg_pth
     
     def get_subj_info(self):
         return self.subj_dir_pths, self.subj_dirs
