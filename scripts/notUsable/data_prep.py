@@ -30,14 +30,16 @@ from glob import glob
 import json
 import time
 from subprocess import call
-import random
+import logging
+from joblib import Parallel, delayed
+
 import nibabel as nib
 import numpy as np
 import torch
-from pathlib import Path
+
 import torchio as tio
 import torchvision.transforms as transforms
-from joblib import Parallel, delayed
+
 
 import utils.utils
 from utils.utils import get_main_args
@@ -83,7 +85,7 @@ def prepare_paths(args):
         "-seg.nii.gz": seg_pth}
     with open(os.path.join(data_dir, f'{args.preproc_set}_OrigPaths.json'), 'w') as file:
         json.dump(file_ext_dict_prep, file)
-    print("Saving subject folder paths and list of IDs. Total subjects is: ", len(subj_dirs))    
+    logging.info(f"Saving subject folder paths and list of IDs. Total subjects is: {len(subj_dirs)}")    
     
     subj_info = {
         "nSubjs" : len(subj_dirs),
@@ -124,11 +126,12 @@ def prepare_nifty(img_pth, seg_pth, subj_dir_pths):
     
     for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower(), reverse=False):
         subj_id = os.path.basename(sub_dir)
-        print("Working on subj: ", subj_id)
+        logging.info(f"Working on subj: {subj_id}")
            
     #Load nifti file for each scanning sequence
-        print("Loading and stacking modalities")
+        logging.info("Loading and stacking modalities")
         img_paths = [s for s in img_pth if subj_id in s]
+        logging.info(f"Image paths are: {img_paths}")
         loaded_modalities = [nib.load(path) for path in img_paths]
         t1n, t1c, t2w, t2f = loaded_modalities
         affine, header = t2f.affine, t2f.header
@@ -138,7 +141,7 @@ def prepare_nifty(img_pth, seg_pth, subj_dir_pths):
         imgs = np.stack([extract_imagedata(modality) for modality in loaded_modalities], axis=-1)
         shapes = {modality: imgs[..., i].shape for i, modality in enumerate(modalities)}
         img_shapes[f'{subj_id}'] = shapes
-        print("Image shapes: ", img_shapes[f'{subj_id}'])
+        logging.info(f"Image shapes: {img_shapes[{subj_id}]}")
         imgs = nib.nifti1.Nifti1Image(imgs, affine, header=header)
         nib.save(imgs, os.path.join(sub_dir, subj_id + "-stk.nii.gz"))
     #Load and save segmentation volume
@@ -148,11 +151,8 @@ def prepare_nifty(img_pth, seg_pth, subj_dir_pths):
         seg = extract_imagedata(seg, "unit8")
         #seg[vol == 4] = 3 --> not sure what this does yet
         seg = nib.nifti1.Nifti1Image(seg, seg_affine, header=seg_header)
-        print("Seg Shape", seg.shape)
+        logging.info(f"Seg Shape {seg.shape}")
         nib.save(seg, os.path.join(sub_dir, subj_id + "-lbl.nii.gz"))
-        
-        del img_paths
-        del seg_path
         del imgs
         del seg
 
@@ -270,25 +270,25 @@ def preprocess_data(transList):
                         proc_lbl_t = trans(proc_lbl_t)
                 np.save(os.path.join(os.path.dirname(f), str(d) + "-lbl.npy"), proc_img_t)
 
-
 def main():
+    logging.basicConfig(filename='04-07_data_prep_22h40.log', filemode='w', level=logging.DEBUG)
     args = get_main_args()
     utils.utils.set_cuda_devices(args)
       
-    # print("Generating stacked nifti files.")
-    # startT = time.time()
-    # img_pth, seg_pth, subj_dir_pths = prepare_paths(args)
+    logging.info("Generating stacked nifti files.")
+    startT = time.time()
+    img_pth, seg_pth, subj_dir_pths = prepare_paths(args)
     
-    # nifArgs = [img_pth, seg_pth, subj_dir_pths]
-    # run_parallel(prepare_nifty, *nifArgs)
-    # print("Loaded all nifti files and saved image data")
+    nifArgs = [img_pth, seg_pth, subj_dir_pths]
+    run_parallel(prepare_nifty, nifArgs)
+    logging.info("Loaded all nifti files and saved image data")
     
-    # print("Saving a copy to images and labels folders")
-    # dirs_prep(args)
-    # endT = time.time()
-    # print(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    logging.info("Saving a copy to images and labels folders")
+    dirs_prep(args)
+    endT = time.time()
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
-    print("Beginning Preprocessing.")
+    logging.info("Beginning Preprocessing.")
     startT2 = time.time()
     transL = ['checkRAS', 'CropOrPad', 'Znorm']
         # transform_pipeline = {
@@ -302,7 +302,7 @@ def main():
     run_parallel(preprocess_data, transL)
     
     end2= time.time()
-    print(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
-
+    logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
+    
 if __name__=='__main__':
     main()
