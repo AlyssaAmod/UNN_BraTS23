@@ -15,7 +15,7 @@ def set_cuda_devices(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", device_list)
 
 def run_parallel(func, args):
-    return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
+    return Parallel(n_jobs=-1)(delayed(func)(arg) for arg in args)
 
 def extract_imagedata(nifty, dtype="int16"):
     if dtype == "int16":
@@ -61,7 +61,7 @@ def get_main_args(strings=None):
     )
     #For file loading (paths & static vars)
     # Folders
-    arg("--data", type=str, default="/data", help="Path to main data directory")
+    arg("--data", type=str, default="/scratch/guest187/Data/train_all", help="Path to main data directory")
     arg("--procData", type=str, default="/data", help="Path for saving output directory")
     arg("--results", type=str, default="/results", help="Path to results directory")
     arg("--ckpt_path", type=str, default=None, help="Path for loading checkpoint")
