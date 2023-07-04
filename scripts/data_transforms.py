@@ -31,11 +31,12 @@ def define_transforms():
 
     return data_transforms
 
-def transforms_preproc(target_shape=None):
+def transforms_preproc(target_shape=False):
     
     to_ras = tio.ToCanonical() # reorient to RAS+
     resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
-    if target_shape != None:
+    if target_shape != False:
+        target_shape=(192, 224, 160)
         crop_pad = tio.CropOrPad(target_shape)
     else:
         crop_pad = None
@@ -58,7 +59,7 @@ def transforms_preproc(target_shape=None):
         'CropOrPad' : crop_pad,
         'ohe' : one_hot_enc,
         'ZnormFore' : normalise_foreground,
-        # 'MaskNorm' : masked,
+        #'MaskNorm' : masked,
         'Znorm': normalise}
     
     return combo_trans, transform_pipeline

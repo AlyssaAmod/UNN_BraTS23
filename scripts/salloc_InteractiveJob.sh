@@ -3,15 +3,14 @@
 
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
-data_dir=/scratch/guest187/Data/train_all
+data_dir=/scratch/guest187/Data/val_gli
 results_dir=/scratch/guest187/Data/train_all/results
 chkpt_store=/scratch/guest187/Data/train_all/checkpoints
 git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 
-nvidia-smi
 
 # pip install --upgrade torchio
-python3 $git/data_prep.py --task data_prep --data $data_dir --data_grp ATr --gpus 2
+python3 $git/data_prep.py --data $data_dir --data_grp GV --preproc_set val --task data_prep --target_shape True --gpus 2
     # Run 27-06:
     #torchio not part of pre-installed hackathon package
     #albumentations not part of pre-installed hackathon package
