@@ -61,7 +61,7 @@ def get_main_args(strings=None):
     )
     #For file loading (paths & static vars)
     # Folders
-    arg("--data", type=str, default="/scratch/guest187/Data/train_all", help="Path to main data directory")
+    arg("--data", type=str, default="/data", help="Path to main data directory")
     arg("--procData", type=str, default="/data", help="Path for saving output directory")
     arg("--results", type=str, default="/results", help="Path to results directory")
     arg("--ckpt_path", type=str, default=None, help="Path for loading checkpoint")
