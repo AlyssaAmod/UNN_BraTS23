@@ -66,7 +66,7 @@ import nibabel
 import numpy as np
 from joblib import Parallel, delayed
 from skimage.transform import resize
-from utils.utils import get_task_code, make_empty_dir
+import utils.utils
 
 
 class Preprocessor:
@@ -93,8 +93,8 @@ class Preprocessor:
     def run(self):
         print(f"Preprocessing {self.data_path}")
         self.collect_spacings()
-        if self.verbose:
-            print(f"Target spacing {self.target_spacing}")
+        # if self.verbose:
+        #     print(f"Target spacing {self.target_spacing}")
         self.run_parallel(self.preprocess_pair, self.args.preproc_set)
         pickle.dump(
             {
@@ -146,11 +146,13 @@ class Preprocessor:
             label = fakeSSA(label)
 
         self.save_npy(label, fname, "Orig-lbl.npy")
+        print("Saved original label")
 
         if self.training:
             image, label = self.standardize(image, label)
 
         self.save(image, label, fname, image_metadata)
+        print("Image, label saved")
 
     def standardize(self, image, label):
         pad_shape = self.calculate_pad_shape(image)
@@ -204,7 +206,8 @@ class Preprocessor:
 
 
     def save_npy(self, image, fname, suffix):
-        np.save(os.path.join(self.results, fname.replace(".nii.gz", suffix)), image, allow_pickle=False)
+        print(os.path.join(self.results, fname.replace(".nii.gz", suffix)))
+        # np.save(os.path.join(self.results, fname.replace(".nii.gz", suffix)), image, allow_pickle=False)
 
     def run_parallel(self, func, exec_mode):
         return Parallel(n_jobs=self.args.n_jobs)(delayed(func)(pair) for pair in self.metadata[exec_mode])
