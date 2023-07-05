@@ -14,6 +14,8 @@ def main():
     args = get_main_args()
     # utils.set_cuda_devices(args)
     data_dir = args.data
+    outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
+    call(f"mkdir -p {outpath}", shell=True)
     # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
     # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
     
@@ -51,8 +53,7 @@ def load_data(data_folders, batch_size, args):
 
     Returns dataloaders ready to be fed into model
     '''
-    outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
-    call(f"mkdir -p {outpath}", shell=True)
+
     # Split data files
     train_files, val_files, test_files = split_data(data_folders, seed=42) # seed for reproducibiilty to get same split
     

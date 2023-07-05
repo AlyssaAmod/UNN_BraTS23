@@ -163,7 +163,7 @@ def preprocess_data(transList):
 
     # Define the list of helper functions for the transformation pipeline
     transform_pipeline = transforms_preproc(args.target_shape)[1]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dirs = glob(os.path.join(data_dir, "BraTS*"))
     for d in dirs:
         files = glob(os.path.join(d, "*.nii.gz"))
@@ -173,20 +173,20 @@ def preprocess_data(transList):
             elif "-stk.nii.gz" in f:
                 proc_img = nib.load(f)
                 proc_img = get_data(proc_img)
-                proc_img_t = (torch.from_numpy(proc_img)).to(device)
+                proc_img_t = (torch.from_numpy(proc_img))
                 for code, trans in transform_pipeline.items():
                     if code in transList:
                         proc_img_t = trans(proc_img_t)
-                np.save(os.path.join(os.path.dirname(f), str(d) + "-stk.npy"), proc_img_t)
+                np.save(os.path.join(d, os.path.basename(d) + "-stk.npy"), proc_img_t)
             elif "-lbl.nii.gz" in f:
                 proc_lbl = nib.load(f)
                 proc_lbl = get_data(proc_lbl)
-                proc_lbl_t = (torch.from_numpy(proc_lbl)).to(device)
+                proc_lbl_t = (torch.from_numpy(proc_lbl))
                 proc_lbl_t = torch.unsqueeze(proc_lbl_t, axis=0)
                 for code, trans in transform_pipeline.items():
                     if code in transList:
                         proc_lbl_t = trans(proc_lbl_t)
-                np.save(os.path.join(os.path.dirname(f), str(d) + "-lbl.npy"), proc_img_t)
+                np.save(os.path.join(d, os.path.basename(d) + "-lbl.npy"), proc_img_t)
 
 def main():
     logging.basicConfig(filename='04-07_data_prep_22h40.log', filemode='w', level=logging.DEBUG)
@@ -196,14 +196,14 @@ def main():
     logging.info("Generating stacked nifti files.")
     startT = time.time()
     logging.info("Loaded all nifti files and saved image data")
-    prepare_dataset(args.data, True)
-    print("Finished!")
+    # prepare_dataset(args.data, True)
+    # print("Finished!")
     endT = time.time()
     logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
     logging.info("Beginning Preprocessing.")
     startT2 = time.time()
-    # transL = ['checkRAS', 'CropOrPad', 'Znorm']
+    transL = ['checkRAS', 'CropOrPad', 'Znorm']
         # transform_pipeline = {
         # 'checkRAS' : to_ras,
         # 'CropOrPad' : crop_pad,
@@ -212,8 +212,8 @@ def main():
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
     # procArgs = (args, transL)
-    data_transforms = define_transforms()
-    transL=data_transforms['fakeSSA']
+    # data_transforms = define_transforms()
+    # transL=data_transforms['fakeSSA']
     run_parallel(preprocess_data, transL)
     
     end2= time.time()

@@ -33,6 +33,7 @@ from subprocess import call
 import logging
 from joblib import Parallel, delayed
 
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 import nibabel as nib
 import numpy as np
 import torch
@@ -54,63 +55,218 @@ def get_data(nifty, dtype="int16"):
 def run_parallel(func, args):
     return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
 
-def preprocess_data(transList):
-    '''
-    Function that applies all desired preprocessing steps to an image, as well as to its 
-    corresponding ground truth image.
+import itertools
+import json
+import math
+import os
+import pickle
 
-    Returns: preprocessed image (not yet converted to tensor)
-        # img is still a list of arrays of the 4 modalities from data files
-    mask is 3d array
+import monai.transforms as transforms
+import nibabel
+import numpy as np
+from joblib import Parallel, delayed
+from skimage.transform import resize
+from utils.utils import get_task_code, make_empty_dir
 
-    return img as list of arrays, and mask as before
-    '''
-    args = get_main_args()
-    data_dir = args.data
-   
-    outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
-    call(f"mkdir -p {outpath}", shell=True)
 
-    # Define the list of helper functions for the transformation pipeline
-    transform_pipeline = transforms_preproc(args.target_shape)[1]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dirs = glob(os.path.join(data_dir, "BraTS*"))
-    for d in dirs:
-        files = glob(os.path.join(d, "*.nii.gz"))
-        for f in files:
-            if "-stk.nii.gz" not in f and "-lbl.nii.gz" not in f:
-                continue
-            elif "-stk.nii.gz" in f:
-                proc_img = nib.load(f)
-                proc_img = get_data(proc_img)
-                proc_img_t = (torch.from_numpy(proc_img)).to(device)
-                for code, trans in transform_pipeline.items():
-                    if code in transList:
-                        proc_img_t = trans(proc_img_t)
-                np.save(os.path.join(os.path.dirname(f), str(d) + "-stk_FSSA.npy"), proc_img_t)
-            elif "-lbl.nii.gz" in f:
-                proc_lbl = nib.load(f)
-                proc_lbl = get_data(proc_lbl)
-                proc_lbl_t = (torch.from_numpy(proc_lbl)).to(device)
-                proc_lbl_t = torch.unsqueeze(proc_lbl_t, axis=0)
-                for code, trans in transform_pipeline.items():
-                    if code in transList:
-                        proc_lbl_t = trans(proc_lbl_t)
-                np.save(os.path.join(os.path.dirname(f), str(d) + "-lbl_FSSA.npy"), proc_img_t)
+class Preprocessor:
+    def __init__(self, args):
+        self.args = args
+        self.target_spacing = None
+        self.task = args.task
+        self.task_code = args.data_grp
+        self.training = args.preproc_set == "training"
+        self.data_path = args.data
+        metadata_path = os.path.join(self.data_path, "dataset.json")
+        self.patch_size = [192, 224, 160]
+        self.metadata = json.load(open(metadata_path, "r"))
+        self.crop_foreg = transforms.CropForegroundd(keys=["image", "label"], source_key="image")
+        nonzero = True  # normalize only non-zero region for MRI
+        self.normalize_intensity = transforms.NormalizeIntensity(nonzero=nonzero, channel_wise=True)
+        if self.args.preproc_set == "val":
+            dataset_json = json.load(open(metadata_path, "r"))
+            dataset_json["val"] = dataset_json["training"]
+            with open(metadata_path, "w") as outfile:
+                json.dump(dataset_json, outfile)
+        self.data_grp = args.data_grp
+
+    def run(self):
+        print(f"Preprocessing {self.data_path}")
+        self.collect_spacings()
+        if self.verbose:
+            print(f"Target spacing {self.target_spacing}")
+        self.run_parallel(self.preprocess_pair, self.args.preproc_set)
+        pickle.dump(
+            {
+                "spacings": self.target_spacing,
+                "n_class": len(self.metadata["labels"]),
+                "in_channels": len(self.metadata["modality"]) + int(self.args.ohe),
+            },
+            open(os.path.join(self.results, "config.pkl"), "wb"),
+        )
+
+    def preprocess_pair(self, pair):
+        fname = os.path.basename(pair["image"] if isinstance(pair, dict) else pair)
+        image, label, image_spacings = self.load_pair(pair)
+
+        # Crop foreground and store original shapes.
+        orig_shape = image.shape[1:]
+        transStd, transCrp, oheZN = transforms_preproc(target_shape=self.target_shape)
+        fakeSSA = tio.Compose([
+            transforms.RandomRotation((0, 180)),
+            transforms.RandomHorizontalFlip(p=0.3),
+            transforms.RandomVerticalFlip(p=0.3),
+            tio.OneOf([
+                tio.transforms.RandomBlur(std=(0.5, 1.5)),
+                tio.transforms.RandomNoise(mean=0, std=(0, 0.33)),
+                tio.transforms.RandomMotion(num_transforms=3, image_interpolation='nearest'),
+                tio.transforms.RandomBiasField(coefficients=1),
+                tio.transforms.RandomGhosting(intensity=1.5)], p=0.8)])
+        if self.trans == 'imageCP':
+            image = transCrp(image)
+            print('after spatial cropping image :', image.shape)
+        elif self.trans == 'imageOHE':
+            image = oheZN(oheZN)
+        else:
+            image = transStd(image)        
+        # bbox = transforms.utils.generate_spatial_bounding_box(image)
+        # print('bbox :', bbox)
+        # print('base image :', image.shape)
+        # image = transforms.SpatialCrop(roi_start=bbox[0], roi_end=bbox[1])(image)
+        image_metadata = np.vstack([self.target_shape, orig_shape, image.shape[1:]])
+        if label is not None:
+            if self.trans == 'imageCP':
+                label = transCrp(label)
+            elif self.trans == 'imageOHE':
+                label = oheZN(label)
+            else:
+                label = transStd(image)
+        if self.data_grp == "fSSATr":
+            image = fakeSSA(image)
+            label = fakeSSA(label)
+
+        self.save_npy(label, fname, "Orig-lbl.npy")
+
+        if self.training:
+            image, label = self.standardize(image, label)
+
+        self.save(image, label, fname, image_metadata)
+
+    def standardize(self, image, label):
+        pad_shape = self.calculate_pad_shape(image)
+        image_shape = image.shape[1:]
+        if pad_shape != image_shape:
+            paddings = [(pad_sh - image_sh) / 2 for (pad_sh, image_sh) in zip(pad_shape, image_shape)]
+            image = self.pad(image, paddings)
+            label = self.pad(label, paddings)
+
+
+    def save(self, image, label, fname, image_metadata):
+        self.save_npy(image, fname, f"{self.data_grp}-stk.npy")
+        if label is not None:
+            self.save_npy(label, fname, f"{self.data_grp}-lbl.npy")
+        if image_metadata is not None:
+            self.save_npy(image_metadata, fname, f"{self.data_grp}_meta.npy")
+
+    def load_pair(self, pair):
+        image = self.load_nifty(pair["image"] if isinstance(pair, dict) else pair)
+        image_spacing = self.load_spacing(image)
+        image = image.get_fdata().astype(np.float32)
+        image = self.standardize_layout(image)
+        if self.training:
+            label = self.load_nifty(pair["label"]).get_fdata().astype(np.uint8)
+            label = self.standardize_layout(label)
+        else:
+            label = None
+        return image, label, image_spacing
+
+    def calculate_pad_shape(self, image):
+        min_shape = self.patch_size[:]
+        image_shape = image.shape[1:]
+        if len(min_shape) == 2:  # In 2D case we don't want to pad depth axis.
+            min_shape.insert(0, image_shape[0])
+        pad_shape = [max(mshape, ishape) for mshape, ishape in zip(min_shape, image_shape)]
+        return pad_shape
+
+    def get_spacing(self, pair):
+        image = nibabel.load(os.path.join(self.data_path, pair["image"]))
+        spacing = self.load_spacing(image)
+        return spacing
+
+    def collect_spacings(self):
+        spacing = self.run_parallel(self.get_spacing, "training")
+        spacing = np.array(spacing)
+        target_spacing = np.median(spacing, axis=0)
+        if max(target_spacing) / min(target_spacing) >= 3:
+            lowres_axis = np.argmin(target_spacing)
+            target_spacing[lowres_axis] = np.percentile(spacing[:, lowres_axis], 10)
+        self.target_spacing = list(target_spacing)
+
+
+    def save_npy(self, image, fname, suffix):
+        np.save(os.path.join(self.results, fname.replace(".nii.gz", suffix)), image, allow_pickle=False)
+
+    def run_parallel(self, func, exec_mode):
+        return Parallel(n_jobs=self.args.n_jobs)(delayed(func)(pair) for pair in self.metadata[exec_mode])
+
+    def load_nifty(self, fname):
+        return nibabel.load(os.path.join(self.data_path, fname))
+
+    @staticmethod
+    def load_spacing(image):
+        return image.header["pixdim"][1:4].tolist()[::-1]
+
+    @staticmethod
+    def pad(image, padding):
+        pad_d, pad_w, pad_h = padding
+        return np.pad(
+            image,
+            (
+                (0, 0),
+                (math.floor(pad_d), math.ceil(pad_d)),
+                (math.floor(pad_w), math.ceil(pad_w)),
+                (math.floor(pad_h), math.ceil(pad_h)),
+            ),
+        )
+
+    @staticmethod
+    def standardize_layout(data):
+        if len(data.shape) == 3:
+            data = np.expand_dims(data, 3)
+        return np.transpose(data, (3, 2, 1, 0))
+    
+    def transforms_preproc(target_shape=False):
+    
+        to_ras = tio.ToCanonical() # reorient to RAS+
+        # resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
+        if target_shape != False:
+            target_shape=(192, 224, 160)
+            crop_pad = tio.CropOrPad(target_shape)
+        else:
+            crop_pad = None
+        one_hot_enc = tio.OneHot(num_classes=4)
+        normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
+        # masked = tio.Mask(masking_method=tio.LabelMap(label))
+        normalise = tio.ZNormalization()
+        oheZN = tio.Compose([one_hot_enc, normalise_foreground])
+
+        transStd = tio.Compose(to_ras, normalise)
+        transCrp = tio.Compose(to_ras, crop_pad, normalise)
+
+        return transStd, transCrp, oheZN
+
 
 def main():
-    logging.basicConfig(filename='04-07_data_prep_fakeSSA.log', filemode='w', level=logging.DEBUG)
+    logging.basicConfig(filename='04-07_data_transforms.log', filemode='w', level=logging.DEBUG)
 
-
+    args = get_main_args()
+    startT = time.time()
     logging.info("Beginning Preprocessing.")
-    startT2 = time.time()
 
-    data_transforms = define_transforms()
-    transL=data_transforms['fakeSSA']
-    run_parallel(preprocess_data, transL)
-    
-    end2= time.time()
-    logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
-    
+    Preprocessor(args).run()
+   
+    endT= time.time()
+    logging.info(f"Data Processing complete. Total time taken: {(endT - startT):.2f}")
+        
 if __name__=='__main__':
     main()
