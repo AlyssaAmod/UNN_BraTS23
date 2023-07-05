@@ -21,10 +21,10 @@ class MRIDataset(Dataset):
             self.imgs = [] # store images to load (paths)
             self.lbls = [] # store corresponding labels (paths)
             # run through each subjectID folder
-            for img_folder in data_folders:
+            for img_folder in self.data_folders:
                 # check if current file is from SSA dataset
                 self.SSA = True if 'SSA' in img_folder else False
-                for file in os.list(img_folder):
+                for file in os.listdir(img_folder):
                     # check folder contents
                     if os.path.isfile(os.path.join(img_folder, file)):
                         # Save segmentation mask (file path)

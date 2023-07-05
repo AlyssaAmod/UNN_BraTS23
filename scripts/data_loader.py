@@ -12,29 +12,37 @@ from utils.utils import get_main_args
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
     args = get_main_args()
-    # utils.set_cuda_devices(args)
-    data_dir = args.data
-    outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
-    call(f"mkdir -p {outpath}", shell=True)
-    # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
-    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
+    # # utils.set_cuda_devices(args)
+    # data_dir = args.data
+    # outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
+    # call(f"mkdir -p {outpath}", shell=True)
+
+    # # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
+    # # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
     
-    # Use for testing data loaders until dataset.json is available
-    # QUESTION: what is the if not any statement checking for if this is meant to create file paths to subject folders?
-    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
+    # # Use for testing data loaders until dataset.json is available
+    # # QUESTION: what is the if not any statement checking for if this is meant to create file paths to subject folders?
+    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
 
-    # datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
+    # # datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
 
-    # print(datasetInfo)
+    # # print(datasetInfo)
     
-    # data_folders = datasetInfo["img_folders"]
-    # img_lbl_npy = datasetInfo["npy_pairPths"]
-    # img_np_pth = datasetInfo["img_np_pth"]
-    # mask_np_pth = datasetInfo["mask_np_pth"]
+    # # data_folders = datasetInfo["img_folders"]
+    # # img_lbl_npy = datasetInfo["npy_pairPths"]
+    # # img_np_pth = datasetInfo["img_np_pth"]
+    # # mask_np_pth = datasetInfo["mask_np_pth"]
 
-    print(data_folders)
+    # print(data_folders)
 
-    batch_size = args.batch_size
+    # batch_size = args.batch_size
+
+    ## testing from terminal
+    data_dir = data_dir='/scratch/guest187/Data/train_all'
+    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
+    batch_size = 16
+
+    # print(data_folders)
 
     dataloaders = load_data(data_folders, batch_size, args)
     print(dataloaders)
@@ -62,20 +70,25 @@ def load_data(data_folders, batch_size, args):
     # Get data transforms
     data_transforms = define_transforms()
     # fakeSSA transforms are applied to GLI data to worse their image quality
+    # image_datasets = {
+    # 'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
+    # 'val': MRIDataset(val_files, transform=data_transforms['val']),
+    # 'test': MRIDataset(test_files, transform=data_transforms['test'])
+    # }
     image_datasets = {
-    'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
+    'train': MRIDataset(train_files, transform=data_transforms['train']),
     'val': MRIDataset(val_files, transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }
 
-    splitData = {
-        'subjsTr' : image_datasets['train'].subj_dirs,
-        'subjsVal' : image_datasets['val'].subj_dirs,
-        'subjsTest' : image_datasets['test'].subj_dirs    
-    }
+    # splitData = {
+    #     'subjsTr' : image_datasets['train'].subj_dirs,
+    #     'subjsVal' : image_datasets['val'].subj_dirs,
+    #     'subjsTest' : image_datasets['test'].subj_dirs    
+    # }
     
-    with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
-        json.dump(splitData, outfile)
+    # with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
+    #     json.dump(splitData, outfile)
 
     # Create dataloaders
     # can set num_workers for running sub-processes
