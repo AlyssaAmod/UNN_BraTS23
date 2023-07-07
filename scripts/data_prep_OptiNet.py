@@ -45,8 +45,6 @@ from data_transforms import transforms_preproc
 from data_transforms import define_transforms
 
 
-
-
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.float32):

@@ -31,7 +31,7 @@ import json
 import time
 from subprocess import call
 import logging
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 import nibabel as nib
 import numpy as np
@@ -52,8 +52,8 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         return super(NumpyEncoder, self).default(obj)
     
-def run_parallel(func, *args):
-    return Parallel(n_jobs=-1)(delayed(func)(*arg) for arg in zip(*args))
+# def run_parallel(func, *args):
+#     return Parallel(n_jobs=-1)(delayed(func)(*arg) for arg in zip(*args))
 
 def prepare_paths(args):
 
@@ -226,7 +226,7 @@ def dirs_prep(args):
         json.dump(datasetFold, outfile)
 
 
-def preprocess_data(transList):
+def preprocess_data(args,transList):
     '''
     Function that applies all desired preprocessing steps to an image, as well as to its 
     corresponding ground truth image.
@@ -237,7 +237,6 @@ def preprocess_data(transList):
 
     return img as list of arrays, and mask as before
     '''
-    args = get_main_args()
     data_dir = args.data
    
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
@@ -279,8 +278,7 @@ def main():
     startT = time.time()
     img_pth, seg_pth, subj_dir_pths = prepare_paths(args)
     
-    nifArgs = [img_pth, seg_pth, subj_dir_pths]
-    run_parallel(prepare_nifty, nifArgs)
+    prepare_nifty(img_pth, seg_pth, subj_dir_pths)
     logging.info("Loaded all nifti files and saved image data")
     
     logging.info("Saving a copy to images and labels folders")
@@ -299,7 +297,7 @@ def main():
         # 'MaskNorm' : masked,
         # 'Znorm': normalise
     # procArgs = (args, transL)
-    run_parallel(preprocess_data, transL)
+    preprocess_data(args,transL)
     
     end2= time.time()
     logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")

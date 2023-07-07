@@ -1,5 +1,4 @@
 import os
-
 import torch
 from data_loader import load_data
 from nnunet.nn_unet import NNUnet
@@ -7,9 +6,9 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary, RichProgressBar
 from pytorch_lightning.plugins.io import AsyncCheckpointIO
 from pytorch_lightning.strategies import DDPStrategy
-from utils.utils import get_main_args
 from utils.logger import LoggingCallback
-from utils.utils import make_empty_dir, set_cuda_devices, set_granularity, verify_ckpt_path
+from utils.utils import set_cuda_devices, verify_ckpt_path
+from utils.utils import get_main_args
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -48,13 +47,14 @@ def main():
     set_cuda_devices(args)
     if args.seed is not None:
         seed_everything(args.seed)
-    dataloaders = load_data(args.data, args.batch_size)
+    # dataloaders = load_data(args.data, args.batch_size, args)
     ckpt_path = verify_ckpt_path(args)
 
     if ckpt_path is not None:
         model = NNUnet.load_from_checkpoint(ckpt_path, strict=False, args=args)
     else:
         model = NNUnet(args)
+    print("loaded model")
     callbacks = [RichProgressBar(), ModelSummary(max_depth=2)]
     if args.benchmark:
         batch_size = args.batch_size if args.exec_mode == "train" else args.val_batch_size
@@ -84,6 +84,8 @@ def main():
     trainer = get_trainer(args, callbacks)
     if args.benchmark:
         if args.exec_mode == "train":
+            print("mode == train")
+            print('Fitting model')
             trainer.fit(model, train_dataloader=dataloaders['train'])
         else:
             # warmup

@@ -100,7 +100,7 @@ def get_main_args(strings=None):
     # # Training parameters ************** TO COMPLETE NEXT WEEK***************
     arg("--nfolds", type=positive_int, default=5, help="Number of cross-validation folds")
     arg("--fold", type=non_negative_int, default=0, help="Fold number")
-    # arg("--seed", type=non_negative_int, default=None, help="Random seed")
+    arg("--seed", type=non_negative_int, default=None, help="Random seed")
     
     arg("--epochs", type=non_negative_int, default=1000, help="Number of training epochs.")
     arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
@@ -111,7 +111,7 @@ def get_main_args(strings=None):
     arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
 
     # arg("--val_batch_size", type=positive_int, default=4, help="Validation batch size")                                     # <---------- CHANGE default
-    # arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
+    arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
     # arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default
     # arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
     
