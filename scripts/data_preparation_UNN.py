@@ -49,34 +49,7 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         return super(NumpyEncoder, self).default(obj)
 
-def main():
-    
-    current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
-    log_file_name = f"app_{current_datetime}.log"
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file_name)
 
-    startT = time.time()
-    args = get_main_args()
-    data_dir = args.data
-    
-    logging.info("Generating stacked nifti files.")
-    run_parallel(data_preparation, sorted(glob(os.path.join(data_dir, "BraTS*"))))
-    logging.info("Loaded all nifti files and saved image data")
-
-    logging.info("Saving a copy to images and labels folders")
-    train = args.preproc_set
-    file_prep(data_dir, train)
-    endT = time.time()
-    
-    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
-
-    startT2 = time.time()
-    logging.info("Beginning Preprocessing.")
-    
-    preprocess_data(data_dir, args)
-    end2= time.time()
-    
-    logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
 def run_parallel(func, args):
     return Parallel(n_jobs=os.cpu_count())(delayed(func)(arg) for arg in args)
@@ -196,7 +169,7 @@ def data_preparation(data_dir, args=get_main_args()):
         del seg
                        
     # save a few bits of info into a json 
-    with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'a') as file:
+    with open(os.path.join(args.data, f'{args.preproc_set}_paths.json'), 'w') as file:
         json.dump(file_ext_dict_prep2, file)
     
     logging.info(f"Saving subject folder paths and list of IDs. Total subjects is: {len(subj_dirs)}")    
@@ -205,7 +178,7 @@ def data_preparation(data_dir, args=get_main_args()):
         "subjIDs" : subj_dirs,
         "subj_dirs" : subj_dir_pths
     }
-    with open(os.path.join(data_dir, "subj_info.json"), "w") as file:
+    with open(os.path.join(args.data, "subj_info.json"), "w") as file:
         json.dump(subj_info,file)
     locals().clear()
 
@@ -341,6 +314,33 @@ def preprocess_data(data_dir, args):
         np.save(os.path.join(args.data, image_name[:-4], f"{image_name}.npy"), img_npy)
         np.save(os.path.join(args.data, label_name[:-4], f"{label_name}.npy"), seg_npy)
 
+def main():
+    
+    current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
+    log_file_name = f"app_{current_datetime}.log"
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file_name)
+
+    startT = time.time()
+    args = get_main_args()
+    data_dir = args.data
+    
+    logging.info("Generating stacked nifti files.")
+    run_parallel(data_preparation, sorted(glob(os.path.join(data_dir, "BraTS*"))))
+    logging.info("Loaded all nifti files and saved image data")
+
+    logging.info("Saving a copy to images and labels folders")
+    file_prep(data_dir, args)
+    endT = time.time()
+    
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+
+    startT2 = time.time()
+    logging.info("Beginning Preprocessing.")
+    
+    preprocess_data(data_dir, args)
+    end2= time.time()
+    
+    logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
 
 if __name__=='__main__':
     main()

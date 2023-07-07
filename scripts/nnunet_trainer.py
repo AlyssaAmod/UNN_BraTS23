@@ -47,7 +47,7 @@ def main():
     set_cuda_devices(args)
     if args.seed is not None:
         seed_everything(args.seed)
-    # dataloaders = load_data(args.data, args.batch_size, args)
+    dataloaders = load_data(args.data, args.batch_size, args)
     ckpt_path = verify_ckpt_path(args)
 
     if ckpt_path is not None:
