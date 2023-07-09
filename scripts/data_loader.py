@@ -12,35 +12,35 @@ from utils.utils import get_main_args
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
     args = get_main_args()
-    # utils.set_cuda_devices(args)
-    data_dir = args.data
-    outpath = os.path.join(args.data_dir, args.data_grp + "_trainingSplits")
-    call(f"mkdir -p {outpath}", shell=True)
+    # # utils.set_cuda_devices(args)
+    # data_dir = args.data
+    # outpath = os.path.join(args.data, args.data_grp + "_trainingSplits")
+    # call(f"mkdir -p {outpath}", shell=True)
 
-    # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
-    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
+    # # data_dir = '/scratch/guest187/BraTS_Africa_data/Baseline/NewScripts_SamplesTest/Samples'
+    # # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not file == '.DS_Store']
     
-    # Use for testing data loaders until dataset.json is available
-    # QUESTION: what is the if not any statement checking for if this is meant to create file paths to subject folders?
-    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
+    # # Use for testing data loaders until dataset.json is available
+    # # QUESTION: what is the if not any statement checking for if this is meant to create file paths to subject folders?
+    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not any(i in file for i in ['stk', 'lbl']) and file.startswith('BraTS-')]
 
-    # datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
+    # # datasetInfo = json.load(open(os.path.join(data_dir,"dataset.json"), "r"))
 
-    # print(datasetInfo)
+    # # print(datasetInfo)
     
-    # data_folders = datasetInfo["img_folders"]
-    # img_lbl_npy = datasetInfo["npy_pairPths"]
-    # img_np_pth = datasetInfo["img_np_pth"]
-    # mask_np_pth = datasetInfo["mask_np_pth"]
+    # # data_folders = datasetInfo["img_folders"]
+    # # img_lbl_npy = datasetInfo["npy_pairPths"]
+    # # img_np_pth = datasetInfo["img_np_pth"]
+    # # mask_np_pth = datasetInfo["mask_np_pth"]
 
-    print(data_folders)
+    # print(data_folders)
 
-    batch_size = args.batch_size
+    # batch_size = args.batch_size
 
     ## Alex: testing from terminal
-    # data_dir = data_dir='/scratch/guest187/Data/train_all'
-    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
-    # batch_size = 16
+    data_dir = data_dir='/scratch/guest187/Data/train_all'
+    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
+    batch_size = 8
 
     # print(data_folders)
 
@@ -49,11 +49,11 @@ def main():
     training_set = dataloaders['train']
     
     for img, label in training_set:
-        print(img.shape)
-        print(label.shape)
+        print(f"Image shape: {img.shape}")
+        print(f"Label shape: {label.shape}")
     
 # MAIN FUNCTION TO USE
-def load_data(data_dir, batch_size, args):
+def load_data(data_folders, batch_size, args):
     '''
     Input:
     data_folders : list of all available data files
@@ -62,7 +62,7 @@ def load_data(data_dir, batch_size, args):
     Returns dataloaders ready to be fed into model
     '''
 
-    data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
+    # data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
 
     # Split data files
     train_files, val_files, test_files = split_data(data_folders, seed=42) # seed for reproducibiilty to get same split

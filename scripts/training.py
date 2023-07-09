@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from nnunet.nn_unet import NNUnet
+from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary, RichProgressBar
 from utils.utils import *
 from data_loader import load_data
 
@@ -21,33 +22,19 @@ def main():
     else:
         model = NNUnet(args)
         
-    # callbacks = [RichProgressBar(), ModelSummary(max_depth=2)]
+    callbacks = [RichProgressBar(), ModelSummary(max_depth=2)]
 
     # what does this do?
-    # if args.benchmark:
-    #     batch_size = args.batch_size if args.exec_mode == "train" else args.val_batch_size
-    #     filnename = args.logname if args.logname is not None else "perf.json"
+    # if args.exec_mode == "train" and args.save_ckpt:
     #     callbacks.append(
-    #         LoggingCallback(
-    #             log_dir=args.results,
-    #             filnename=filnename,
-    #             global_batch_size=batch_size * args.gpus * args.nodes,
-    #             mode=args.exec_mode,
-    #             warmup=args.warmup,
-    #             dim=args.dim,
+    #         ModelCheckpoint(
+    #             dirpath=f"{args.ckpt_store_dir}/checkpoints",
+    #             filename="{epoch}-{dice:.2f}",
+    #             monitor="dice",
+    #             mode="max",
+    #             save_last=True,
     #         )
     #     )
-    # elif args.exec_mode == "train":
-    #     if args.save_ckpt:
-    #         callbacks.append(
-    #             ModelCheckpoint(
-    #                 dirpath=f"{args.ckpt_store_dir}/checkpoints",
-    #                 filename="{epoch}-{dice:.2f}",
-    #                 monitor="dice",
-    #                 mode="max",
-    #                 save_last=True,
-    #             )
-    #         )
 
     dataloaders = load_data(args.data, args.batch_size)
 

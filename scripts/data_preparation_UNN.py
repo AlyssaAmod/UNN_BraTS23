@@ -85,23 +85,24 @@ def data_preparation(data_dir, args=get_main_args()):
     file_ext_dict_prep = {
         **{f"-{m}.nii.gz": img_pth for m in modalities},
         "-seg.nii.gz": seg_pth}
-
+                
     #Loop through main data folder to generate lists of paths
     logging.info(f"Generating dataset paths from data folder: {data_dir}")
     for root, dirs, files in os.walk(data_dir):
-        for directory in sorted(dirs, key=lambda x: x.lower(), reverse=True):
+        for directory in sorted(glob(os.path.join(dirs, "BraTS*"))):
             if not "BraTS-" in directory:
-                break
+                continue
             else:
                 subj_dirs.append(str(directory))
-                subj_dir_pths.append(os.path.join(root,directory))
-        for file in files:
-            file_pth = os.path.join(root, file)
-            if os.path.isfile(file_pth) and args.task=='data_prep':
-                for ext, list_to_append in file_ext_dict_prep.items():
-                    if file.endswith(ext):
-                        #logging.info(file_pth)
-                        list_to_append.append(file_pth)
+                subj_dir_pths.append(os.path.join(data_dir,directory))
+            for file in files:
+                file_pth = os.path.join(root, file)
+                if os.path.isfile(file_pth) and args.task=='data_prep':
+                    for ext, list_to_append in file_ext_dict_prep.items():
+                        if file.endswith(ext):
+                            #logging.info(file_pth)
+                            list_to_append.append(file_pth)
+    
     logging.info(f"Saving path lists to file: {args.preproc_set}_paths.json")
     with open(os.path.join(data_dir, f'{args.preproc_set}_paths.json'), 'w') as file:
         json.dump(file_ext_dict_prep, file)
@@ -119,9 +120,9 @@ def data_preparation(data_dir, args=get_main_args()):
         "-lbl.nii.gz": proc_lbls
     }
     
-    for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower(), reverse=True):
+    for sub_dir in sorted(subj_dir_pths, key=lambda x: x.lower()):
         if not "BraTS-" in sub_dir:
-            break
+            continue
         subj_id = os.path.basename(sub_dir)
         logging.info(f"Working on subj: {subj_id}")
         
@@ -145,10 +146,10 @@ def data_preparation(data_dir, args=get_main_args()):
         fPath = os.path.join(sub_dir, subj_id + "-stk.nii.gz")
         proc_imgs.append(fPath)       
 
-        if os.path.exists(fPath):
-            # Delete the existing file
-            os.remove(fPath)
-        nib.save(imgs, fPath)
+        # if os.path.exists(fPath):
+        #     # Delete the existing file
+        #     os.remove(fPath)
+        # nib.save(imgs, fPath)
         del imgs
     # Step 3: Load and save seg
         logging.info("Loading and saving segmentation")
@@ -162,9 +163,9 @@ def data_preparation(data_dir, args=get_main_args()):
         fPath2 = os.path.join(sub_dir, subj_id + "-lbl.nii.gz")
         proc_lbls.append(fPath2)
 
-        if os.path.exists(fPath):
-            # Delete the existing file
-            os.remove(fPath)
+        # if os.path.exists(fPath):
+        #     # Delete the existing file
+        #     os.remove(fPath)
         nib.save(seg, fPath2)
         del seg
                        
@@ -195,11 +196,12 @@ def file_prep(data_dir, args):
         A dictionary of dictionaries containing the image-label path pairs
             "training": [{"image": "images/subjIDxxx.nii.gz", "label": "labels/subjIDxxx_seg.nii.gz"}
     """
-    filePaths = json.load(open(data_dir,f'{args.exec_mode}_paths.json', "r"))
+    
+    filePaths = json.load(open(os.path.join(data_dir,f'{args.preproc_set}_paths.json'), "r"))
     stk = sorted(filePaths["-stk.nii.gz"], key=lambda x: x.lower(), reverse=True)
     lbl = sorted(filePaths["-lbl.nii.gz"], key=lambda x: x.lower(), reverse=True)
 
-    subjInfo = json.load(open(data_dir,f'subj_info.json', "r"))
+    subjInfo = json.load(open(os.path.join(data_dir,'subj_info.json'), "r"))
     subj_dirs = subjInfo["subj_dirs"]
     subj_id = subjInfo["subjIDs"]
     
@@ -252,7 +254,7 @@ def apply_preprocessing(subject, transform_pipeline, transL):
             transformed_subject = transform_func(transformed_subject)
     return transformed_subject
 
-def load_and_transform_images(pair, transL):
+def load_and_transform_images(pair):
     images = []
     labels = []
     for item in pair:
@@ -287,7 +289,7 @@ def preprocess_data(data_dir, args):
     mask is 3d array
     return img as list of arrays, and mask as before
     '''
-    filePaths = json.load(open(data_dir,'dataset.json', "r"))
+    filePaths = json.load(open(os.path.join(data_dir,'dataset.json'), "r"))
     pair = filePaths["training"]
 
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
@@ -320,12 +322,12 @@ def main():
     log_file_name = f"app_{current_datetime}.log"
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file_name)
 
-    startT = time.time()
+    # startT = time.time()
     args = get_main_args()
     data_dir = args.data
     
     logging.info("Generating stacked nifti files.")
-    run_parallel(data_preparation, sorted(glob(os.path.join(data_dir, "BraTS*"))))
+    run_parallel(data_preparation, data_dir)
     logging.info("Loaded all nifti files and saved image data")
 
     logging.info("Saving a copy to images and labels folders")
