@@ -32,6 +32,7 @@ import time
 from subprocess import call
 import logging
 from joblib import Parallel, delayed
+import itertools
 
 import nibabel as nib
 import numpy as np
@@ -97,9 +98,9 @@ def prepare_dirs(data, train):
     for d in dirs:
         files = glob(os.path.join(d, "*.nii.gz"))
         for f in files:
-            if "t2f" in f or "t1n" in f or "t1c" in f or "t2w" in f:
+            if "t2f" in f or "t1n" in f or "t1c" in f or "t2w" in f or "-seg" in f: 
                 continue
-            if "-seg" in f:
+            if "-lbl" in f:
                 call(f"cp {f} {lbl_path}", shell=True)
             else:
                 call(f"cp {f} {img_path}", shell=True)
@@ -146,30 +147,53 @@ def apply_preprocessing(subject, transform_pipeline, transL):
             transformed_subject = transform_func(transformed_subject)
     return transformed_subject
 
-def load_and_transform_images(pair):
-    images = []
-    labels = []
-    for item in pair:
-        image_path = item["image"]
-        label_path = item["label"]
-        
-        # Load the image and label using TorchIO
-        subject = tio.Subject(
-            image=tio.ScalarImage(image_path),
-            label=tio.LabelMap(label_path)
-        )
-        transform_pipeline = transforms_preproc()
-        transL = ['checkRAS','ohe','ZnormFore']
-        
-        # Apply the preprocessing steps
-        transformed_subject = apply_preprocessing(subject, transform_pipeline, transL)
-        
-        transformed_image = transformed_subject["image"]
-        transformed_label = transformed_subject["label"]
-        images.append(transformed_image)
-        labels.append(transformed_label)
+def load_and_transform_images(inputs):
+    pair, data_path = inputs
+    print("my pair ", pair)
+    
+    image_path = pair["image"]
+    label_path = pair["label"]
+    
+    # Load the image and label using TorchIO
+    subject = tio.Subject(
+        image=tio.ScalarImage(os.path.join(data_path, image_path)),
+        label=tio.LabelMap(os.path.join(data_path, label_path))
+    )
 
-    return images, labels
+    transform_pipeline = transforms_preproc(target_shape=True)
+    transL = ['checkRAS','CropOrPad','ZnormFore']
+    # transL = ['CropOrPad']
+    # OPTIONS ARE:
+                # 'checkRAS' : to_ras,
+                # 'CropOrPad' : crop_pad,
+                # 'ohe' : one_hot_enc,
+                # 'ZnormFore' : normalise_foreground,
+                # 'MaskNorm' : masked,
+                # 'Znorm': normalise
+                # 'fSSA' : fSSA
+    # Apply the preprocessing steps
+    transformed_subject = apply_preprocessing(subject, transform_pipeline, transL)
+    
+    transformed_image = transformed_subject["image"]
+    transformed_label = transformed_subject["label"]
+      
+    # Save the transformed images and segmentations to .npy files
+    img_npy = transformed_image.numpy()
+    lbl_npy = transformed_label.numpy()
+    logging.info(f"Image Numpy Shape: {img_npy.shape}")
+    logging.info(f"Label Numpy Shape: {lbl_npy.shape}")
+    patient_folder = os.path.basename(image_path).split(".")[0][:-4]
+    print("PATIENT FOLDER :", patient_folder)
+    image_name = os.path.basename(image_path).split(".")[0] # os.path.splitext(os.path.basename(image_path))[0]
+    label_name = os.path.basename(label_path).split(".")[0] # os.path.splitext(os.path.basename(label_path))[0]
+    img_sv_path = os.path.join(data_path, patient_folder, f"{image_name}.npy")
+    lbl_sv_path = os.path.join(data_path, patient_folder, f"{label_name}.npy")
+    print("DATA PATH : ", data_path)
+    print("IMAGE: ", image_name, ";    dest: ", img_sv_path, ";    shape: ", img_npy.shape)
+    print("LABEL: ", label_name,";    dest: ", lbl_sv_path, ";    shape: ", lbl_npy.shape)
+    np.save(os.path.join(img_sv_path, f"{image_name}.npy"), img_npy)
+    np.save(os.path.join(lbl_sv_path, f"{label_name}.npy"), lbl_npy)
+
 
 def preprocess_data(data_dir, args):
     '''
@@ -186,27 +210,12 @@ def preprocess_data(data_dir, args):
 
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir -p {outpath}", shell=True)
+    # Load and transform the images and segmentations
+    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
+    # load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
+    # 
 
-    # transforms = []
-    
-    # for code, trans in transform_pipeline.items():
-    #     if code in transList:
-    #         transforms.append(trans)
-    # transform = tio.Compose(transforms)
-    
-   # Load and transform the images and segmentations
-    transformed_images, transformed_labels = run_parallel(load_and_transform_images, pair)
-
-    # Save the transformed images and segmentations to .npy files
-    for i, (image_path, label_path) in enumerate(zip([item["image"] for item in pair], [item["label"] for item in pair])):
-        img_npy = transformed_images[i].numpy()
-        seg_npy = transformed_labels[i].numpy()
-        logging.info(f"Image Numpy Shape: {img_npy.shape}")
-        logging.info(f"Seg Numpy Shape: {seg_npy.shape}")
-        image_name = os.path.splitext(os.path.basename(image_path))[0]
-        label_name = os.path.splitext(os.path.basename(label_path))[0]
-        np.save(os.path.join(args.data, image_name[:-4], f"{image_name}.npy"), img_npy)
-        np.save(os.path.join(args.data, label_name[:-4], f"{label_name}.npy"), seg_npy)
+   
 
 
 def main():
@@ -216,21 +225,17 @@ def main():
 
     args = get_main_args()
       
-    logging.info("Generating stacked nifti files.")
-    startT = time.time()
-    logging.info("Loaded all nifti files and saved image data")
-    prepare_dataset(args.data, True)
-    print("Finished!")
-    endT = time.time()
-    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    # logging.info("Generating stacked nifti files.")
+    # startT = time.time()
+    # logging.info("Loaded all nifti files and saved image data")
+    # prepare_dataset(args.data, True)
+    # print("Finished!")
+    # endT = time.time()
+    # logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
-    logging.info("Beginning Preprocessing.")
     startT2 = time.time()
     logging.info("Beginning Preprocessing.")
-    
     preprocess_data(args.data, args)
-    end2= time.time()
-    
     end2= time.time()
     logging.info(f"Data Processing complete. Total time taken: {(end2 - startT2):.2f}")
     

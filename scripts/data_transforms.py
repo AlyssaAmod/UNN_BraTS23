@@ -36,8 +36,7 @@ def transforms_preproc(target_shape=False):
     to_ras = tio.ToCanonical() # reorient to RAS+
     # resample_t1space = tio.Resample(image_interpolation='nearest') # target output space (ie. match T2w to the T1w space) 
     if target_shape != False:
-        target_shape=(192, 224, 160)
-        crop_pad = tio.CropOrPad(target_shape, mask_name=label)
+        crop_pad = tio.CropOrPad((192, 224, 160))
     else:
         crop_pad = None
     one_hot_enc = tio.OneHot(num_classes=4)
