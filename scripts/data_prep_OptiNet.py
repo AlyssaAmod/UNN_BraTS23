@@ -131,6 +131,8 @@ def prepare_dataset_json(data, train):
 
 
 def prepare_dataset(data, train):
+    logger = logging.getLogger('my_logger')
+
     print(f"Preparing BraTS21 dataset from: {data}")
     start = time.time()
     run_parallel(prepare_nifty, sorted(glob(os.path.join(data, "BraTS*"))))
@@ -141,15 +143,19 @@ def prepare_dataset(data, train):
 
 
 def apply_preprocessing(subject, transform_pipeline, transL):
+    logger = logging.getLogger(__name__)
+    logging.info("Applying transforms")
     transformed_subject = subject
     for transform_name, transform_func in transform_pipeline.items():
         if transform_name in transL and transform_func is not None:
+            logging.info(f"\ntransformation is {transform_name}")
             transformed_subject = transform_func(transformed_subject)
     return transformed_subject
 
 def load_and_transform_images(inputs):
+    logger = logging.getLogger(__name__)
     pair, data_path = inputs
-    print("my pair ", pair)
+    logger.info("my pair ", pair)
     
     image_path = pair["image"]
     label_path = pair["label"]
@@ -180,17 +186,17 @@ def load_and_transform_images(inputs):
     # Save the transformed images and segmentations to .npy files
     img_npy = transformed_image.numpy()
     lbl_npy = transformed_label.numpy()
-    logging.info(f"Image Numpy Shape: {img_npy.shape}")
-    logging.info(f"Label Numpy Shape: {lbl_npy.shape}")
+    logger.info(f"Image Numpy Shape: {img_npy.shape}")
+    logger.info(f"Label Numpy Shape: {lbl_npy.shape}")
     patient_folder = os.path.basename(image_path).split(".")[0][:-4]
-    print("PATIENT FOLDER :", patient_folder)
+    logger.info("PATIENT FOLDER :", patient_folder)
     image_name = os.path.basename(image_path).split(".")[0] # os.path.splitext(os.path.basename(image_path))[0]
     label_name = os.path.basename(label_path).split(".")[0] # os.path.splitext(os.path.basename(label_path))[0]
     img_sv_path = os.path.join(data_path, patient_folder, f"{image_name}.npy")
     lbl_sv_path = os.path.join(data_path, patient_folder, f"{label_name}.npy")
-    print("DATA PATH : ", data_path)
-    print("IMAGE: ", image_name, ";    dest: ", img_sv_path, ";    shape: ", img_npy.shape)
-    print("LABEL: ", label_name,";    dest: ", lbl_sv_path, ";    shape: ", lbl_npy.shape)
+    logger.info("DATA PATH : ", data_path)
+    logger.info("IMAGE: ", image_name, ";    dest: ", img_sv_path)
+    logger.info("LABEL: ", label_name,";    dest: ", lbl_sv_path)
     np.save(os.path.join(img_sv_path, f"{image_name}.npy"), img_npy)
     np.save(os.path.join(lbl_sv_path, f"{label_name}.npy"), lbl_npy)
 
@@ -213,14 +219,10 @@ def preprocess_data(data_dir, args):
     # Load and transform the images and segmentations
     run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
     # load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
-    # 
-
    
-
-
 def main():
     current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
-    log_file_name = f"app_{current_datetime}.log"
+    log_file_name = f"preproc_{current_datetime}.log"
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_file_name)
 
     args = get_main_args()
