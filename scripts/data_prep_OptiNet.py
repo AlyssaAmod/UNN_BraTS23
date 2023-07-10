@@ -197,8 +197,8 @@ def load_and_transform_images(inputs):
     logger.info("DATA PATH : ", data_path)
     logger.info("IMAGE: ", image_name, ";    dest: ", img_sv_path)
     logger.info("LABEL: ", label_name,";    dest: ", lbl_sv_path)
-    np.save(os.path.join(img_sv_path, f"{image_name}.npy"), img_npy)
-    np.save(os.path.join(lbl_sv_path, f"{label_name}.npy"), lbl_npy)
+    np.save(img_sv_path, img_npy)
+    np.save(lbl_sv_path, lbl_npy)
 
 
 def preprocess_data(data_dir, args):
@@ -217,8 +217,8 @@ def preprocess_data(data_dir, args):
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir -p {outpath}", shell=True)
     # Load and transform the images and segmentations
-    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
-    # load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
+    # run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
+    load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
    
 def main():
     current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
