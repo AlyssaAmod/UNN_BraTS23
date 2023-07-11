@@ -217,8 +217,8 @@ def preprocess_data(data_dir, args):
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir -p {outpath}", shell=True)
     # Load and transform the images and segmentations
-    # run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
-    load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
+    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
+    # load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
    
 def main():
     current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
