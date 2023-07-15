@@ -34,6 +34,12 @@ def non_negative_int(value):
     assert ivalue >= 0, f"Argparse error. Expected non-negative integer but got {value}"
     return ivalue
 
+# added function
+def float_0_1(value):
+    fvalue = float(value)
+    assert 0 <= fvalue <= 1, f"Argparse error. Expected float value to be in range (0, 1), but got {value}"
+    return fvalue
+
 def get_config_file(args):
     if args.data != "/data":
         path = os.path.join(args.data, "config.pkl")
@@ -116,18 +122,84 @@ def get_main_args(strings=None):
     # arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
     
     # # Other training params ************ TO CHECK IF NEEDED ******************
-    # arg("--gradient_clip_val", type=float, default=0, help="Gradient clipping norm value")
-    # arg("--negative_slope", type=float, default=0.01, help="Negative slope for LeakyReLU")
-    # arg("--tta", action="store_true", help="Enable test time augmentation")
-    # arg("--deep_supervision", action="store_true", help="Enable deep supervision")
-    # arg("--invert_resampled_y", action="store_true", help="Resize predictions to match label size before resampling")
-    # arg("--amp", action="store_true", help="Enable automatic mixed precision")
-    # arg("--skip_first_n_eval", type=non_negative_int, default=0, help="Skip the evaluation for the first n epochs.")
-    # arg("--momentum", type=float, default=0.99, help="Momentum factor")
-    # arg("--weight_decay", type=float, default=0.0001, help="Weight decay (L2 penalty)")
-    # arg("--warmup", type=non_negative_int, default=5, help="Warmup iterations before collecting statistics")
-    # arg("--min_fmap", type=non_negative_int, default=4, help="Minimal dimension of feature map in the bottleneck")
-    # arg("--deep_supr_num", type=non_negative_int, default=2, help="Number of deep supervision heads")
+    arg("--gradient_clip_val", type=float, default=0, help="Gradient clipping norm value")
+    arg("--negative_slope", type=float, default=0.01, help="Negative slope for LeakyReLU")
+    arg("--tta", action="store_true", help="Enable test time augmentation")
+    arg("--deep_supervision", action="store_true", help="Enable deep supervision")
+    arg("--invert_resampled_y", action="store_true", help="Resize predictions to match label size before resampling")
+    arg("--amp", action="store_true", help="Enable automatic mixed precision")
+    arg("--skip_first_n_eval", type=non_negative_int, default=0, help="Skip the evaluation for the first n epochs.")
+    arg("--momentum", type=float, default=0.99, help="Momentum factor")
+    arg("--weight_decay", type=float, default=0.0001, help="Weight decay (L2 penalty)")
+    arg("--warmup", type=non_negative_int, default=5, help="Warmup iterations before collecting statistics")
+    arg("--min_fmap", type=non_negative_int, default=4, help="Minimal dimension of feature map in the bottleneck")
+    arg("--deep_supr_num", type=non_negative_int, default=2, help="Number of deep supervision heads")
+    # added
+    arg("--brats", action="store_true", help="Enable BraTS specific training and inference")
+    arg("--brats22_model", action="store_true", help="Use BraTS22 model")
+    arg("--dim", type=int, choices=[2, 3], default=3, help="UNet dimension")
+    arg("--filters", nargs="+", help="[Optional] Set U-Net filters", default=None, type=int)
+    arg("--res_block", action="store_true", help="Enable residual blocks")
+    arg("--layout", type=str, default="NCDHW")
+    arg("--focal", action="store_true", help="Use focal loss instead of cross entropy")
+    arg("--benchmark", action="store_true", help="Run model benchmarking")
+    arg(
+        "--norm",
+        type=str,
+        choices=["instance", "instance_nvfuser", "batch", "group"],
+        default="instance",
+        help="Normalization layer",
+    )
+    arg(
+        "--data2d_dim",
+        choices=[2, 3],
+        type=int,
+        default=3,
+        help="Input data dimension for 2d model",
+    )
+    arg(
+        "--oversampling",
+        type=float_0_1,
+        default=0.4,
+        help="Probability of crop to have some region with positive label",
+    )
+    arg(
+        "--overlap",
+        type=float_0_1,
+        default=0.25,
+        help="Amount of overlap between scans during sliding window inference",
+    )
+    arg(
+        "--scheduler",
+        action="store_true",
+        help="Enable cosine rate scheduler with warmup",
+    )
+    arg(
+        "--optimizer",
+        type=str,
+        default="adam",
+        choices=["sgd", "adam"],
+        help="Optimizer",
+    )
+    arg(
+        "--blend",
+        type=str,
+        choices=["gaussian", "constant"],
+        default="constant",
+        help="How to blend output of overlapping windows",
+    )
+    arg(
+        "--train_batches",
+        type=non_negative_int,
+        default=0,
+        help="Limit number of batches for training (used for benchmarking mode only)",
+    )
+    arg(
+        "--test_batches",
+        type=non_negative_int,
+        default=0,
+        help="Limit number of batches for inference (used for benchmarking mode only)",
+    )
 
     if strings is not None:
         arg(
