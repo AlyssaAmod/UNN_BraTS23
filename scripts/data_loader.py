@@ -3,11 +3,12 @@ import os
 import torch.utils.data as data_utils
 import json
 from subprocess import call
-
 from data_class import MRIDataset
 from sklearn.model_selection import train_test_split
 from data_transforms import define_transforms
 from utils.utils import get_main_args
+import pickle
+import glob
 
 def main():
     # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
@@ -20,26 +21,27 @@ def main():
 
     # print(data_folders)
 
-    #     pickle.dump(
-#     {
-#         "patch_size": self.patch_size,
-#         "spacings": self.target_spacing,
-#         "n_class": len(self.metadata["labels"]),
-#         "in_channels": len(self.metadata["modality"]) + int(self.args.ohe),
-#     },
-#     open(os.path.join(self.results, "config.pkl"), "wb"),
-# )
+    # Code to save config file
+    # pickle.dump(
+    #     {
+    #         "patch_size": [128, 128, 128],
+    #         "spacings": [1.0, 1.0, 1.0],
+    #         "n_class": 4,
+    #         "in_channels": 4,
+    #     },
+    #     open(os.path.join('/scratch/guest187/Data/train_all', "config.pkl"), "wb"),
+    # )
 
-    dataloaders = load_data(data_folders, batch_size, args)
-    print(dataloaders)
-    training_set = dataloaders['train']
+    # dataloaders = load_data(data_folders, batch_size, args)
+    # print(dataloaders)
+    # training_set = dataloaders['train']
     
-    for img, label in training_set:
-        print(f"Image shape: {img.shape}")
-        print(f"Label shape: {label.shape}")
+    # for img, label in training_set:
+    #     print(f"Image shape: {img.shape}")
+    #     print(f"Label shape: {label.shape}")
     
 # MAIN FUNCTION TO USE
-def load_data(data_folders, batch_size, args):
+def load_data(data_dir, batch_size, args):
     '''
     Input:
     data_folders : list of all available data files
@@ -53,8 +55,10 @@ def load_data(data_folders, batch_size, args):
     else:
         seed=None
 
+    data_folders = glob.glob(os.path.join(data_dir, "BraTS*"))
+
     # Split data files
-    train_files, val_files, test_files = split_data(data_folders, seed) # seed for reproducibiilty to get same split
+    train_files, val_files, test_files = split_data(data_folders[:6], seed) # seed for reproducibiilty to get same split
     
     print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}\nNumber of test: files {len(test_files)}")
     
@@ -76,9 +80,9 @@ def load_data(data_folders, batch_size, args):
         'subjsVal' : val_files,
         'subjsTest' : test_files    
     }
-    outpath = os.path.join(args.data, args.data_grp + '_preproc')
-    with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
-        json.dump(splitData, outfile)
+    # outpath = os.path.join(args.data, args.data_grp + '_preproc')
+    # with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
+    #     json.dump(splitData, outfile)
 
     # Create dataloaders
     # can set num_workers for running sub-processes

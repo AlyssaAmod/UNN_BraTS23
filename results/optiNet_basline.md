@@ -85,7 +85,20 @@ SBATCH setup for fold 0:
 - #SBATCH --mem=32G
 - #SBATCH --time=18:00:00
 ```
-
+```
+SLURM efficiency is:
+Job ID: 7725767
+Cluster: graham
+User/Group: guest187/guests
+State: TIMEOUT (exit code 0)
+Nodes: 1
+Cores per node: 16
+CPU Utilized: 19:36:11
+CPU Efficiency: 6.80% of 12-00:06:08 core-walltime
+Job Wall-clock time: 18:00:23
+Memory Utilized: 3.18 GB
+Memory Efficiency: 9.93% of 32.00 GB
+```
 Attempted increasing hardware requests
  - Accepts 3 GPUS
  - need to include srun --ntasks-per-node
@@ -116,6 +129,17 @@ srun: Force Terminated StepId=8867242.2
 #SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=12G
 n tasks == 2
+
+Cluster: graham
+User/Group: guest187/guests
+State: CANCELLED (exit code 0)
+Nodes: 2
+Cores per node: 6
+CPU Utilized: 01:29:47
+CPU Efficiency: 23.76% of 06:17:48 core-walltime
+Job Wall-clock time: 00:31:29
+Memory Utilized: 5.68 GB (estimated maximum)
+Memory Efficiency: 3.94% of 144.00 GB (12.00 GB/core)
 ```
 
 Epoch 0: 100%|██████████| 260/260 [17:18<00:00,  3.99s/it, loss=2.06]
@@ -124,3 +148,38 @@ Epoch 0: 100%|██████████| 260/260 [17:18<00:00,  3.99s/it, l
 This function is meant to help with ensuring multi-GPU usage is split properly
 It does not work
 I have tried using available cuda_python instead of libartcuda but it says package not found (installed and triple checked avail wheels in hackathon python set up)
+```
+##########
+# --gpus-per-node=t4:3 --cpus-per-task=12 --mem-per-cpu=8G --time=0:45:00 --nodes=2 --account def-training-wa
+
+# WORKS
+# --gpus-per-node=t4:3 --cpus-per-task=6 --mem-per-cpu=12G --time=00:15:00 --account def-training-wa
+## This uses only one node even when --nodes 2 is part of script call
+## Gets stuck at model callback summary
+
+#SBATCH --gpus-per-node=t4:3
+#SBATCH --cpus-per-task=22
+#SBATCH --mem-per-cpu=6G
+#SBATCH --time=12:00:00 
+
+###########
+# FAILED ATTEMPTS:
+# --nodes=2 --gpus-per-node=t4:3 --cpus-per-task=6 --mem-per-cpu=16G --time=00:15:00 --account def-training-wa
+### This receives GPU memory error
+
+# tried removing srun command: PossibleUserWarning: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python3 /home/guest187/BrainHackProject/nnUNet/main.py --da ...  rank_zero_warn(Using 16bit native Automatic Mixed Precision (AMP)Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+
+```
+
+Working:
+#!/bin/bash
+#SBATCH --account def-training-wa
+#SBATCH --gpus-per-node=t4:3
+#SBATCH --cpus-per-task=22
+#SBATCH --mem-per-cpu=6G
+#SBATCH --time=12:00:00
+#SBATCH --mail-user=amodar7@gmail.com
+#SBATCH --mail-type=ALL
+
+srun python3 /home/guest187/BrainHackProject/nnUNet/main.py --data $data_dirTr --results $results_dirTr --ckpt_store_dir $ckpt_store --brats --depth 6 --filters 64 96 128 192 256 384 512 --scheduler --learning_rate 0.0005 --epochs 50 --fold 1 --amp --gpus 3 --task 11 --save_ckpt --nfolds 10 --nodes 2
+df = pd.read_csv(f,sep=';',header=None, names=['PARTITION','AVAIL','TIMELIMIT','NODE','STATE','NODELIST'])

@@ -94,6 +94,8 @@ def main():
             model.start_benchmark = 1
             trainer.test(model, dataloaders=dataloaders['test'], verbose=False)
     elif args.exec_mode == "train":
+        print("mode == train")
+        print('Fitting model')
         trainer.fit(model, train_dataloader=dataloaders['train'])
     elif args.exec_mode == "evaluate":
         trainer.validate(model, dataloaders=dataloaders['val'])
@@ -106,7 +108,7 @@ def main():
                 dir_name += "_tta"
             save_dir = os.path.join(args.results, dir_name)
             model.save_dir = save_dir
-            make_empty_dir(save_dir)
+            # make_empty_dir(save_dir)
         model.args = args
         trainer.test(model, dataloaders=dataloaders['test'])
 
