@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from monai.data import DataLoader
 from monai.transforms import Compose
@@ -11,13 +12,14 @@ from monai.transforms import Compose
 from monai.utils.misc import set_determinism
 from tqdm import tqdm
 from monai.networks import nets
+from monai.losses import DiceLoss
 from torch.cuda.amp import GradScaler, autocast
 
 import data_loader as dl
 
 # Set seed
-set_determinism(42)
 args = dl.get_main_args()
+set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define transforms
@@ -26,16 +28,20 @@ data_transform = dl.define_transforms()
 # Load data
 # this also saves a json splitData
 dataloaders = dl.load_data(args)
+train_loader, val_loader = dataloaders['train'], dataloaders['val']
+
+# Load model checkpoint
+# TODO
 
 # Define model architecture
 model=nets.UNet(
     spatial_dims=3,
     in_channels=4,
-    out_channels=4,
+    out_channels=1,
     # channels=(4, 8, 16, 32, 64),
-    channels=(32,64,128,256,320,320), #nnunet channels, deoth 6
+    channels=(32, 64, 128, 256, 320, 320), #nnunet channels, deoth 6
     # channels=(64, 96, 128, 192, 256, 384, 512) # optinet, depth 7
-    strides=(2, 2, 2, 2),
+    strides=(2, 2, 2, 2, 2), # length should = len(channels) - 1
     # kernel_size=,
     # num_res_units=,
     # dropout=0.0,
@@ -47,11 +53,20 @@ model.to(device)
 print(model)
 
 # Define optimiser
-optimiser = args.optimiser
+if args.optimiser == 'adam':
+    optimiser = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
+elif args.optimiser == 'sgd':
+    optimiser = torch.optim.SGD(params=model.parameters())
+
 # Define loss function
-criterion = args.criterion
+if args.criterion == 'ce':
+    criterion = nn.CrossEntropyLoss()
+elif args.criterion == 'dice':
+    crtierion = DiceLoss()
 
 # Train model
+
+# From MONAI notebook
 val_interval = 1 # validation can be done every n epochs
 epoch_loss_list = []
 val_epoch_loss_list = []
@@ -71,6 +86,7 @@ for epoch in range(args.epochs):
         inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
         optimiser.zero_grad()
 
+        # cast tensor to smaller memory footprint to avoid OOM
         # with autocast(enabled=True):
         with autocast():
 
@@ -83,6 +99,7 @@ for epoch in range(args.epochs):
             # Get model prediction
             # noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=timesteps)
             # loss = F.mse_loss(noise_pred.float(), noise.float())
+            print(inputs.shape)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
 
@@ -102,8 +119,10 @@ for epoch in range(args.epochs):
         model.eval()
         val_epoch_loss = 0
         for step, batch in enumerate(dataloaders['val']):
-            images = batch["image"].to(device)
-            noise = torch.randn_like(images).to(device)
+            inputs, labels = batch[0].to(device), batch[1].to(device)
+        # for step, batch in enumerate(dataloaders['val']):
+            # images = batch["image"].to(device)
+            # noise = torch.randn_like(images).to(device)
             with torch.no_grad():
                 with autocast():
                 # with autocast(enabled=True):
@@ -136,3 +155,6 @@ for epoch in range(args.epochs):
 
 total_time = time.time() - total_start
 print(f"train completed, total time: {total_time}.")
+
+# Save checkpoint
+# TODO
