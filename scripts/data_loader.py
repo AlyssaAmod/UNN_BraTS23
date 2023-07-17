@@ -32,16 +32,16 @@ def main():
     #     open(os.path.join('/scratch/guest187/Data/train_all', "config.pkl"), "wb"),
     # )
 
-    # dataloaders = load_data(data_folders, batch_size, args)
-    # print(dataloaders)
-    # training_set = dataloaders['train']
+    dataloaders = load_data(data_dir, batch_size, args)
+    print(dataloaders)
+    training_set = dataloaders['train']
     
     # for img, label in training_set:
     #     print(f"Image shape: {img.shape}")
     #     print(f"Label shape: {label.shape}")
     
 # MAIN FUNCTION TO USE
-def load_data(data_dir, batch_size, args):
+def load_data(args):
     '''
     Input:
     data_folders : list of all available data files
@@ -55,7 +55,14 @@ def load_data(data_dir, batch_size, args):
     else:
         seed=None
 
-    data_folders = glob.glob(os.path.join(data_dir, "BraTS*"))
+    # data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
+
+    if args.data_used == 'all':
+        data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
+    elif args.data_used == "GLI":
+        data_folders = [folder for folder in os.listdir(args.data) if 'GLI' in folder]
+    elif args.data_used == 'SSA':
+        data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
 
     # Split data files
     train_files, val_files, test_files = split_data(data_folders[:6], seed) # seed for reproducibiilty to get same split
@@ -75,22 +82,23 @@ def load_data(data_dir, batch_size, args):
     'val': MRIDataset(val_files, transform=data_transforms['val']),
     'test': MRIDataset(test_files, transform=data_transforms['test'])
     }
+
+    # Create dataloaders
+    # can set num_workers for running sub-processes
+    dataloaders = {
+        'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
+        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.batch_size, shuffle=True),
+        'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.batch_size, shuffle=True)
+    }
+
     splitData = {
         'subjsTr' : train_files,
         'subjsVal' : val_files,
         'subjsTest' : test_files    
     }
-    # outpath = os.path.join(args.data, args.data_grp + '_preproc')
-    # with open(os.path.join(outpath, "trainSplit.json"), "a") as outfile:
-    #     json.dump(splitData, outfile)
-
-    # Create dataloaders
-    # can set num_workers for running sub-processes
-    dataloaders = {
-        'train': data_utils.DataLoader(image_datasets['train'], batch_size=batch_size, shuffle=True, drop_last=True),
-        'val': data_utils.DataLoader(image_datasets['val'], batch_size=batch_size, shuffle=True),
-        'test': data_utils.DataLoader(image_datasets['test'], batch_size=batch_size, shuffle=True)
-    }
+    # Save data split
+    # with open(args.data + str(args.run_name) + ".json", "w") as file:
+    #     json.dump(splitData, file)
 
     return dataloaders
 
