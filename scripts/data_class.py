@@ -3,7 +3,8 @@ import torch
 import os
 import numpy as np
 from utils.utils import get_main_args
-from torch.utils.data import Dataset
+# from torch.utils.data import Dataset
+from monai.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
 import torchio
@@ -14,7 +15,7 @@ class MRIDataset(Dataset):
     folder structure: subjectID/image.nii, seg.nii (i.e. contains 2 files)
     """
 
-    def __init__(self, data_folders, transform=None, SSAtransform=None):
+    def __init__(self, args, data_folders, transform=None, SSAtransform=None):
             self.data_folders = data_folders # path for each data folder in the set
             self.transform = transform
             self.SSAtransform = SSAtransform
@@ -22,17 +23,18 @@ class MRIDataset(Dataset):
             self.lbls = [] # store corresponding labels (paths)
             # run through each subjectID folder
             for img_folder in self.data_folders:
+                folder_path = os.path.join(args.data, img_folder)
                 # check if current file is from SSA dataset
                 self.SSA = True if 'SSA' in img_folder else False
-                for file in os.listdir(img_folder):
+                for file in os.listdir(folder_path):
                     # check folder contents
-                    if os.path.isfile(os.path.join(img_folder, file)):
+                    if os.path.isfile(os.path.join(folder_path, file)):
                         # Save segmentation mask (file path)
                         if file.endswith("-lbl.npy"):
-                            self.lbls.append(os.path.join(img_folder, file))
+                            self.lbls.append(os.path.join(folder_path, file))
                         elif file.endswith("-stk.npy"):
                             # Save image (file path)
-                            self.imgs.append(os.path.join(img_folder, file))
+                            self.imgs.append(os.path.join(folder_path, file))
 
     def __len__(self):
         # Return the amount of images in this set

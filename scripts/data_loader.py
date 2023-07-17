@@ -65,7 +65,7 @@ def load_data(args):
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
 
     # Split data files
-    train_files, val_files, test_files = split_data(data_folders[:6], seed) # seed for reproducibiilty to get same split
+    train_files, val_files, test_files = split_data(data_folders, seed) # seed for reproducibiilty to get same split
     
     print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}\nNumber of test: files {len(test_files)}")
     
@@ -78,9 +78,9 @@ def load_data(args):
     # 'test': MRIDataset(test_files, transform=data_transforms['test'])
     # }
     image_datasets = {
-    'train': MRIDataset(train_files, transform=data_transforms['train']),
-    'val': MRIDataset(val_files, transform=data_transforms['val']),
-    'test': MRIDataset(test_files, transform=data_transforms['test'])
+    'train': MRIDataset(args, train_files, transform=data_transforms['train']),
+    'val': MRIDataset(args, val_files, transform=data_transforms['val']),
+    'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }
 
     # Create dataloaders
