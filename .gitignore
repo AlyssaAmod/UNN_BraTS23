@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 data/
+SampleCode/
 
 # Mac OS-specific storage files
 .DS_Store
