@@ -112,7 +112,7 @@ def get_main_args(strings=None):
     arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
     arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size")
     arg("--depth", type=non_negative_int, default=5, help="The depth of the encoder")                                       # <---------- CHANGE default
-    arg("--batch_size", type=positive_int, default=8, help="Batch size")                                                    # <---------- CHANGE default
+    arg("--batch_size", type=positive_int, default=4, help="Batch size")                                                    # <---------- CHANGE default
     arg("--optimiser", type=str, default="adam", choices=["sgd", "adam"], help="Optimiser")
     arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
     arg("--run_name", type=str, help="Run name")

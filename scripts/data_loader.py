@@ -41,7 +41,7 @@ def main():
     #     print(f"Label shape: {label.shape}")
     
 # MAIN FUNCTION TO USE
-def load_data(args):
+def load_data(args, data_transforms):
     '''
     Input:
     data_folders : list of all available data files
@@ -49,13 +49,10 @@ def load_data(args):
 
     Returns dataloaders ready to be fed into model
     '''
-    
     if args.seed != None:
         seed=args.seed
     else:
         seed=None
-
-    # data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
 
     if args.data_used == 'all':
         data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
@@ -70,13 +67,11 @@ def load_data(args):
     print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}\nNumber of test: files {len(test_files)}")
     
     # Get data transforms
-    data_transforms = define_transforms()
+    # data_transforms = define_transforms(n_channels)
     # fakeSSA transforms are applied to GLI data to worse their image quality
     # image_datasets = {
     # 'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
-    # 'val': MRIDataset(val_files, transform=data_transforms['val']),
-    # 'test': MRIDataset(test_files, transform=data_transforms['test'])
-    # }
+
     image_datasets = {
     'train': MRIDataset(args, train_files, transform=data_transforms['train']),
     'val': MRIDataset(args, val_files, transform=data_transforms['val']),
@@ -91,14 +86,14 @@ def load_data(args):
         'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.batch_size, shuffle=True)
     }
 
+    # Save data split
     splitData = {
         'subjsTr' : train_files,
         'subjsVal' : val_files,
         'subjsTest' : test_files    
     }
-    # Save data split
-    # with open(args.data + str(args.run_name) + ".json", "w") as file:
-    #     json.dump(splitData, file)
+    with open(args.data + str(args.data_used) + ".json", "w") as file:
+        json.dump(splitData, file)
 
     return dataloaders
 

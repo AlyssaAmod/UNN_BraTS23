@@ -1,4 +1,4 @@
-# UNN_BraTS23
+    # UNN_BraTS23
 MICCAI 2023 Brain Tumour Segmentation Challenge
 ## Running these scripts
 
@@ -10,18 +10,62 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 ## Project Structure
 ------------
+├── Adewole et al_The Brain Tumor Segmentation (BraTS) Challenge 2023.pdf
+├── Background.md
+├── LICENSE
+├── notebooks
+│   ├── data-exploration.ipynb
+│   ├── test_scripts.ipynb
+│   ├── transforms-exploration.ipynb
+│   └── usefulFx.ipynb
+├── playground
+│   ├── data_prep-augs
+│   │   ├── data_prepFakeSSA.py
+│   │   ├── prepoc_augs
+│   │   │   ├── Augs.py
+│   │   │   └── stdPreproc.py
+│   │   └── UNN_datapreparation_v0.py
+│   ├── modelZoo_playground
+│   │   ├── model.py
+│   │   ├── nnunet
+│   │   │   ├── brats22_model.py
+│   │   │   ├── loss.py
+│   │   │   ├── metrics.py
+│   │   │   ├── nn_unet.py
+│   │   │   └── nnunet_trainer.py
+│   │   ├── optimized_U-net.py
+│   │   └── training.py
+│   ├── training_fn_playground.py
+│   └── visualisations.py
+├── README.md
+├── reports
+│   ├── BraTS-SSA-00008-000.png
+│   ├── BraTS-SSA-00008-000_seg.png
+│   ├── BraTS-SSA-00008-000_t1c.png
+│   ├── BraTS-SSA-00008-000_t1n.png
+│   ├── BraTS-SSA-00008-000_t2f.png
+│   ├── BraTS-SSA-00008-000_t2w.png
+│   ├── t1c.png
+│   ├── t1n.png
+│   ├── t2f.png
+│   └── transforms.py
+├── results
+│   └── optiNet_basline.md
+└── scripts
+    ├── data_class.py
+    ├── data_loader.py
+    ├── data_preparation
+    │   ├── data_preparation_OptiNet.py
+    │   └── data_preparation_UNN.py
+    ├── data_transforms.py
+    ├── modelZoo_monai.py
+    ├── monai_trainer.py
+    ├── MONAI_Unet_Brats.ipynb
+    ├── salloc_InteractiveJob.sh
+    └── utils
+        ├── logger.py
+        └── utils.py
 
-    ├── README.md                  <- The top-level README for developers using this project.
-    ├── notebooks
-    │   └── data-exploration       <- perform initial exploratory data analysis
-    │ 
-    ├── scripts
-    │   ├── data_preprocessing     <- read in raw dataset, extract header info, crop unnecessary background, convert sub-region labels e.t.c, and store preprocessed data
-    |   ├── data_transforms        <- defines different transforms used for each set
-    |   ├── data_class             <- contains custom Dataset class
-    │   └── data_loader            <- split dataset into train/val/test, process into PyTorch dataloaders, including any transforms --> data ready to be fed into model
-    │  
-    ├── reports                    <- contains all generated graphics for reporting
 
 ------------
 

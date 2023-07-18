@@ -5,22 +5,33 @@ import warnings
 
 
 #! TO DO: we must fill in the transforms we want to apply
-def define_transforms():
+def define_transforms(n_channels):
     # Initialise data transforms
     data_transforms = {
-        'train': transforms.Compose([
-            transforms.RandomRotation((0, 180)),
-            transforms.RandomHorizontalFlip(p=0.3),
-            transforms.RandomVerticalFlip(p=0.3)
+        'train': tio.Compose([
+            tio.CropOrPad((192, 192, 124)),
+            tio.OneOf([
+                tio.Compose([
+                    tio.RandomFlip(axes=0, p=0.3),
+                    tio.RandomFlip(axes=1, p=0.3),
+                    tio.RandomFlip(axes=2, p=0.3)]),
+                tio.RandomAffine(degrees=15,p=0.3)
+            ], p=0.8),
+            tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
-        'fakeSSA': tio.OneOf([
-            tio.transforms.RandomBlur(std=(0.5, 1.5)),
-            tio.transforms.RandomNoise(mean=0, std=(0, 0.33)), # Gaussian noise
-            # transforms.ColorJitter(brightness=(0.8, 1.2)),
-            tio.transforms.RandomMotion(num_transforms=3, image_interpolation='nearest'),
-            tio.transforms.RandomBiasField(coefficients=1),
-            tio.transforms.RandomGhosting(intensity=1.5)
-        ], p=0.8), # randomly apply ONE of these given transforms with prob 0.5 
+        'fakeSSA': tio.Compose([
+            # tio.Resample((1.2, 1.2, 6)),
+            # tio.RandomAnisotropy(axes=(0, 1, 2), downsampling=(1, 6)),
+            tio.OneOf([
+                tio.RandomBlur(std=(0.5, 1.5)),
+                tio.RandomNoise(mean=0, std=(0, 0.33))
+            ], p=0.5),
+            tio.OneOf([
+                tio.RandomMotion(num_transforms=3, image_interpolation='nearest'),
+                tio.RandomBiasField(coefficients=1),
+                tio.RandomGhosting(intensity=1.5)
+            ], p=0.5)
+         ]), # randomly apply ONE of these given transforms with prob 0.5 
         'val': transforms.Compose([
             # transforms.Resize(INPUT_SIZE)
         ]),
