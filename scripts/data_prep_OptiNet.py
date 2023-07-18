@@ -167,7 +167,7 @@ def load_and_transform_images(inputs):
     )
 
     transform_pipeline = transforms_preproc(target_shape=True)
-    transL = ['checkRAS','CropOrPad','ZnormFore']
+    transL = ['checkRAS','ZnormFore']
     # transL = ['CropOrPad']
     # OPTIONS ARE:
                 # 'checkRAS' : to_ras,

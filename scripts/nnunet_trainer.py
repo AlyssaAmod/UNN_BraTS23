@@ -96,7 +96,7 @@ def main():
     elif args.exec_mode == "train":
         print("mode == train")
         print('Fitting model')
-        trainer.fit(model, train_dataloader=dataloaders['train'])
+        trainer.fit(model, dataloaders['train'])
     elif args.exec_mode == "evaluate":
         trainer.validate(model, dataloaders=dataloaders['val'])
     elif args.exec_mode == "predict":
