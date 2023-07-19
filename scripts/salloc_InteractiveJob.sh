@@ -24,7 +24,7 @@ salloc --time=03:00:00 --cpus-per-task=8 --mem-per-cpu=8G --account=def-training
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
 
-data_dir=/scratch/guest187/Data/train_all
+data_dir=/scratch/guest187/Data/train_all/train_data
 git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 
 python $git/monai_trainer.py --seed 42 --data $data_dir --epochs 2 --gpus 2 --run_name "tester" --data_used "SSA" --criterion "dice"
