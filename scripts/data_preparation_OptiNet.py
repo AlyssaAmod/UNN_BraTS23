@@ -227,13 +227,13 @@ def main():
 
     args = get_main_args()
       
-    # logging.info("Generating stacked nifti files.")
-    # startT = time.time()
-    # logging.info("Loaded all nifti files and saved image data")
-    # prepare_dataset(args.data, True)
-    # print("Finished!")
-    # endT = time.time()
-    # logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    logging.info("Generating stacked nifti files.")
+    startT = time.time()
+    logging.info("Loaded all nifti files and saved image data")
+    prepare_dataset(args.data, True)
+    print("Finished!")
+    endT = time.time()
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
     startT2 = time.time()
     logging.info("Beginning Preprocessing.")
