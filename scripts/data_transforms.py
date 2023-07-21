@@ -32,11 +32,12 @@ def define_transforms(n_channels):
                 tio.RandomGhosting(intensity=1.5)
             ], p=0.5)
          ]), # randomly apply ONE of these given transforms with prob 0.5 
-        'val': transforms.Compose([
-            # transforms.Resize(INPUT_SIZE)
+        'val': tio.Compose([
+            tio.CropOrPad((192, 192, 124)),
+            tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
-        'test' : transforms.Compose([
-            # transforms.Resize(INPUT_SIZE)
+        'test' : tio.Compose([
+            tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ])
     }
 

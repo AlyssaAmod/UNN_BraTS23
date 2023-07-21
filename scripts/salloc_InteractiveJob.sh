@@ -19,15 +19,17 @@
 # git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 
 # FOR MONAI trainer testing use
-salloc --time=03:00:00 --cpus-per-task=8 --mem-per-cpu=8G --account=def-training-wa
+salloc --time=02:00:00 --gpus-per-node=t4:1 --cpus-per-task=6 --mem-per-cpu=8G --account=def-training-wa
 
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
 
 data_dir=/scratch/guest187/Data/train_all/train_data
+results_dir=/scratch/guest187/Data/train_all/results/test_run
 git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 
-python $git/monai_trainer.py --seed 42 --data $data_dir --epochs 2 --gpus 2 --run_name "tester" --data_used "SSA" --criterion "dice"
+
+python $git/monai_trainer.py --seed 42 --data $data_dir --results $results_dir --epochs 2 --gpus 1 --run_name "tester" --data_used "SSA" --criterion "dice" --batch_size=2
 
 
 
@@ -95,3 +97,5 @@ python $git/monai_trainer.py --seed 42 --data $data_dir --epochs 2 --gpus 2 --ru
 
 ##### TRAINING nnUNET #######
 # srun --ntasks-per-node=2 python3 /home/guest187/BrainHackProject/nnUNet/main.py --data $data_dirTr --results $results_dirTr --ckpt_store_dir $ckpt_store --brats --depth 6 --filters 64 96 128 192 256 384 512 --scheduler --learning_rate 0.0005 --epochs 100 --fold 1 --amp --gpus 2 --task 11 --save_ckpt --nfolds 10 --exec_mode train
+
+python -m ipykernel install --user --name PythonKern --display-name "Python 3.9 Kernel"
