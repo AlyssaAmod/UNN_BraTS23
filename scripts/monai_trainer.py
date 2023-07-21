@@ -56,56 +56,18 @@ args = dl.get_main_args()
 set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 root_dir = args.data
+results_dir = args.results
 """
 Potentially useful functions for model tracking and checkpoint loading
 """
-class AverageMeter(object):
-    def __init__(self):
-        self.reset()
 
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = np.where(self.count > 0, self.sum / self.count, self.sum)
-
-
-def datafold_read(datalist, basedir, fold=0, key="training"):
-    with open(datalist) as f:
-        json_data = json.load(f)
-
-    json_data = json_data[key]
-
-    for d in json_data:
-        for k in d:
-            if isinstance(d[k], list):
-                d[k] = [os.path.join(basedir, iv) for iv in d[k]]
-            elif isinstance(d[k], str):
-                d[k] = os.path.join(basedir, d[k]) if len(d[k]) > 0 else d[k]
-
-    tr = []
-    val = []
-    for d in json_data:
-        if "fold" in d and d["fold"] == fold:
-            val.append(d)
-        else:
-            tr.append(d)
-
-    return tr, val
-
-
-def save_checkpoint(model, epoch, filename="model.pt", best_acc=0, dir_add=root_dir):
+def save_checkpoint(model, epoch, best_acc=0, dir_add=results_dir, args=args):
+    filename=f"chkpt_{args.run_name}_{epoch}_{best_acc}.pt"
     state_dict = model.state_dict()
     save_dict = {"epoch": epoch, "best_acc": best_acc, "state_dict": state_dict}
     filename = os.path.join(dir_add, filename)
     torch.save(save_dict, filename)
-    print("Saving checkpoint", filename)
+    print("\nSaving checkpoint", filename)
 
 
 """Define model architecture:
@@ -114,17 +76,17 @@ def save_checkpoint(model, epoch, filename="model.pt", best_acc=0, dir_add=root_
 model=UNet(
     spatial_dims=3,
     in_channels=4,
-    out_channels=1,
-    channels=(16, 32, 64, 128, 256),
+    out_channels=4,
+    # channels=(16, 32, 64, 128, 256),
     # channels=(32, 64, 128, 256, 320, 320), #nnunet channels, deoth 6
-    # channels=(64, 96, 128, 192, 256, 384, 512) # optinet, depth 7
-    strides=(2, 2, 2, 2), # length should = len(channels) - 1
+    channels=(64, 96, 128, 192, 256, 384, 512) # optinet, depth 7
+    strides=(2, 2, 2, 2, 2, 2), # length should = len(channels) - 1
     # kernel_size=,
     # num_res_units=,
     # dropout=0.0,
     ).to(device)
 n_channels = len(model.channels)
-print(n_channels)
+print(f"Number of channels: {n_channels}")
 
 """Setup transforms, dataset"""
 # Define transforms
@@ -175,8 +137,8 @@ Setup validation stuff
     define inference
 """
 VAL_AMP = True
-dice_metric = DiceMetric(include_background=True, reduction="mean")
-dice_metric_batch = DiceMetric(include_background=True, reduction="mean_batch")
+dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=True, num_classes=4)
+dice_metric_batch = DiceMetric(include_background=True, reduction="mean_batch", get_not_nans=True, num_classes=4)
 post_trans = Compose([Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
 
 # define inference method
@@ -185,9 +147,10 @@ def inference(input):
         return sliding_window_inference(
             inputs=input,
             roi_size=(240, 240, 160),
-            batch_size=1,
+            sw_batch_size=1,
             predictor=model,
             overlap=0.5,
+            mode='gaussian'
         )
     if VAL_AMP:
         with torch.cuda.amp.autocast():
@@ -213,9 +176,10 @@ best_metric_epoch = -1
 best_metrics_epochs_and_time = [[], [], []]
 
 metric_values = []
-metric_values_tc = []
-metric_values_wt = []
-metric_values_et = []
+metric_values_0 = []
+metric_values_1 = []
+metric_values_2 = []
+metric_values_3 = []
 
 scaler = GradScaler()
 
@@ -227,16 +191,16 @@ for epoch in range(args.epochs):
     # print(f"epoch {epoch + 1}/{args.epochs}")
     model.train()
     epoch_loss = 0
-    progress_bar = tqdm(enumerate(dataloaders['train']), total=len(dataloaders['train']), ncols=70)
-    progress_bar.set_description(f"Epoch {epoch}")
+    progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), dynamic_ncols=True)
+    progress_bar.set_description(f"Training Epoch {epoch}")
 
     # for step, batch in progress_bar:
     for step, batch_data in progress_bar:
+        step_start = time.time()
         inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
-        optimiser.zero_grad(set_to_none=True)
-
-        # cast tensor to smaller memory footprint to avoid OOM
-        with autocast(enabled=True):
+        optimiser.zero_grad()
+       
+        with autocast(): # cast tensor to smaller memory footprint to avoid OOM
             """ FOR USE WITH A DIFFUSION MODEL ONLY
             # Generate random noise
             noise = torch.randn_like(images).to(device)
@@ -249,9 +213,8 @@ for epoch in range(args.epochs):
             loss = F.mse_loss(noise_pred.float(), noise.float())
              """
 
-            print(inputs.shape)
+            # print(inputs.shape)
             outputs = model(inputs)
-
             loss = criterion.forward(outputs, labels)
         
         # Calculate Loss and Update optimiser using scalar
@@ -259,34 +222,92 @@ for epoch in range(args.epochs):
         scaler.step(optimiser)
         scaler.update()
         epoch_loss += loss.item()
-
-        progress_bar.set_postfix({"loss": epoch_loss / (step + 1)})
-        epoch_loss_list.append(epoch_loss / (step + 1))
-        print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
+        progress_bar.set_postfix({"bat_train_loss" : loss.item(), "Ave_train_loss" : epoch_loss/(step + 1)})
+        
+        print(
+            f"\n{step}/{len(train_loader.dataset)//train_loader.batch_size}"
+            f",     Batch train_loss: {loss.item():.4f}"
+            f",     Step time: {(time.time() - step_start):.4f}"
+        )
+        epoch_loss2 = epoch_loss/(step+1)
+        lr_scheduler.step()
+    epoch_loss_list.append(epoch_loss2)
+    print(f"\nEpoch {epoch} average loss: {epoch_loss2:.4f}")
     
     if (epoch + 1) % val_interval == 0:
         model.eval()
         val_epoch_loss = 0
-        for step, batch in enumerate(dataloaders['val']):
-            inputs, labels = batch[0].to(device), batch[1].to(device)
-            with torch.no_grad():
-                with autocast(enabled=True):
-                    """ FOR USE WITH A DIFFUSION MODEL ONLY
-                    timesteps = torch.randint(
-                        0, inferer.scheduler.num_train_timesteps, (images.shape[0],), device=images.device
-                    ).long()
+        progress_bar = tqdm(enumerate(val_loader), total=len(val_loader),dynamic_ncols=True)
+        progress_bar.set_description(f"Val_train Epoch {epoch}")
 
-                    # Get model prediction
-                    noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=timesteps)
-                    val_loss = F.mse_loss(noise_pred.float(), noise.float())
-                    """
-                    outputs = model(inputs)
-                    val_loss = criterion.forward(outputs, labels)
+        for step, batch in enumerate(val_loader):
+            val_inputs, val_labels = batch[0].to(device), batch[1].to(device)
+            """ FOR USE WITH A DIFFUSION MODEL ONLY
+            timesteps = torch.randint(
+                0, inferer.scheduler.num_train_timesteps, (images.shape[0],), device=images.device
+            ).long()
+
+            # Get model prediction
+            noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=timesteps)
+            val_loss = F.mse_loss(noise_pred.float(), noise.float())
+            """
+            with torch.no_grad():
+                val_outputs = inference(val_inputs)
+                val_loss = criterion.forward(val_outputs, val_labels)
+                
+                val_labels_list = decollate_batch(val_labels)
+                val_outputs_convert = [post_trans(i) for i in decollate_batch(val_outputs)]
+                dice_metric(y_pred=val_outputs_convert, y=val_labels_list)
+                dice_metric_batch(y_pred=val_outputs_convert, y=val_labels_list)
 
             val_epoch_loss += val_loss.item()
-            progress_bar.set_postfix({"val_loss": val_epoch_loss / (step + 1)})
+            progress_bar.set_postfix({"Val_loss": val_epoch_loss / (step + 1)})
         val_epoch_loss_list.append(val_epoch_loss / (step + 1))
+        
+        metric = dice_metric.aggregate()[0].item()
+        metric_values.append(metric)
+        metric_batch = dice_metric_batch.aggregate()
+        # print(metric)
+        # print(metric_batch)
 
+        metric_0 = metric_batch[0][0].item()
+        metric_values_0.append(metric_0)
+
+        metric_1 = metric_batch[0][1].item()
+        metric_values_1.append(metric_1)
+
+        metric_2 = metric_batch[0][2].item()
+        metric_values_2.append(metric_2)
+
+        metric_3 = metric_batch[0][3].item()
+        metric_values_3.append(metric_3)
+
+        dice_metric.reset()
+        dice_metric_batch.reset()
+
+        if metric > best_metric:
+            best_metric = metric
+            best_metric_epoch = epoch + 1
+            best_metrics_epochs_and_time[0].append(best_metric)
+            best_metrics_epochs_and_time[1].append(best_metric_epoch)
+            best_metrics_epochs_and_time[2].append(time.time() - total_start)
+            save_checkpoint(
+                    model,
+                    epoch,
+                    best_acc=best_metric,
+                )
+            torch.save(
+                model.state_dict(),
+                os.path.join(results_dir, f"best_metric_model_{args.run_name}.pth"),
+            )
+            print("\nsaved new best metric model")
+        print(
+            f"\ncurrent epoch: {epoch + 1} current mean dice: {metric:.4f}"
+            f"\nMean Dice per Region is: label 1: {metric_1:.4f};  label 2: {metric_2:.4f} label 3: {metric_3:.4f}"
+            f"\nbest mean dice: {best_metric:.4f}"
+            f" at epoch: {best_metric_epoch}"
+        )
+    print(f"time consuming of epoch {epoch + 1} is: {(time.time() - epoch_start):.4f}")
 total_time = time.time() - total_start
 
 

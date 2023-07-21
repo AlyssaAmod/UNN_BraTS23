@@ -7,7 +7,7 @@ from utils.utils import get_main_args
 from monai.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
-import torchio
+import torchio as tio
 
 class MRIDataset(Dataset):
     """
@@ -45,7 +45,10 @@ class MRIDataset(Dataset):
         # Load files
         image = np.load(self.imgs[idx])
         mask = np.load(self.lbls[idx])
-
+        print(self.imgs[idx] )
+        print("========================")
+        print(self.lbls[idx] )
+        print("========================")        
         # Convert to tensor
         image = torch.from_numpy(image) # 4, 240, 240, 155
         mask = torch.from_numpy(mask) # 240, 240, 155
@@ -55,14 +58,20 @@ class MRIDataset(Dataset):
             # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
             # image = self.transform(image.to(device))
             # mask = self.transform(mask.to(device))
-            image = self.transform(image) # remove todevice
-            mask = self.transform(mask)
+            subject = tio.Subject(
+                image=tio.ScalarImage(tensor=image),
+                mask=tio.LabelMap(tensor=mask)
+                )
+            tranformed_subject = self.transform(subject) 
+            print("tranformed_subject: ", tranformed_subject)
+            image = tranformed_subject["image"].data
+            mask = tranformed_subject["mask"].data
         if self.SSA == False and self.SSAtransform is not None: # Apply transformation to GLI data to reduce quality (creating fake SSA data)
             # transforms such as blur, noise etc are NOT applied to mask as well
             # image = self.SSAtransform(image.to(device))
             image = self.SSAtransform(image)
         
-        return image, mask
+        return image, mask, self.imgs[idx]
     
     def get_paths(self):
         return self.img_pth, self.seg_pth

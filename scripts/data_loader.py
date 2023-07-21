@@ -82,8 +82,8 @@ def load_data(args, data_transforms):
     # can set num_workers for running sub-processes
     dataloaders = {
         'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
-        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.batch_size, shuffle=True),
-        'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.batch_size, shuffle=True)
+        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True),
+        'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
     }
 
     # Save data split

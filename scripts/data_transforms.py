@@ -19,24 +19,35 @@ def define_transforms(n_channels):
             ], p=0.8),
             tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
-        'fakeSSA': tio.Compose([
-            # tio.Resample((1.2, 1.2, 6)),
-            # tio.RandomAnisotropy(axes=(0, 1, 2), downsampling=(1, 6)),
-            tio.OneOf([
-                tio.RandomBlur(std=(0.5, 1.5)),
-                tio.RandomNoise(mean=0, std=(0, 0.33))
-            ], p=0.5),
-            tio.OneOf([
-                tio.RandomMotion(num_transforms=3, image_interpolation='nearest'),
-                tio.RandomBiasField(coefficients=1),
-                tio.RandomGhosting(intensity=1.5)
-            ], p=0.5)
-         ]), # randomly apply ONE of these given transforms with prob 0.5 
-        'val': transforms.Compose([
-            # transforms.Resize(INPUT_SIZE)
+        'fakeSSA': tio.OneOf({
+            tio.OneOf({
+                tio.Compose([
+                    tio.Resample((1.2, 1.2, 6), scalars_only=True),
+                    tio.Resample(1)
+                ]):0.50,
+                tio.Compose([
+                    tio.RandomAnisotropy(axes=(1, 2), downsampling=(1.2), scalars_only=True),
+                    tio.RandomAnisotropy(axes=0, downsampling=(6), scalars_only=True)
+                ]):0.5,                
+            },p=0.80),
+            tio.Compose([            
+                tio.OneOf({
+                    tio.RandomBlur(std=(0.5, 1.5)) : 0.3,
+                    tio.RandomNoise(mean=3, std=(0, 0.33)) : 0.7
+                },p=0.50),
+                tio.OneOf({
+                    tio.RandomMotion(num_transforms=3, image_interpolation='nearest') : 0.5,
+                    tio.RandomBiasField(coefficients=1) : 0.2,
+                    tio.RandomGhosting(intensity=1.5) : 0.3
+                }, p=0.50)
+            ])
+        }, p=0.8), # randomly apply ONE of these given transforms with prob 0.5 
+        'val': tio.Compose([
+            tio.CropOrPad((192, 192, 124)),
+            tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
-        'test' : transforms.Compose([
-            # transforms.Resize(INPUT_SIZE)
+        'test' : tio.Compose([
+            tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ])
     }
 
