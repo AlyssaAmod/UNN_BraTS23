@@ -41,9 +41,9 @@ import torch
 import torchio as tio
 
 import utils.utils
-from utils.utils import get_main_args
-from data_transforms import transforms_preproc
-from data_transforms import define_transforms
+from ..utils.utils import get_main_args
+from ..data_transforms import transforms_preproc
+from ..data_transforms import define_transforms
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -74,6 +74,7 @@ def get_data(nifty, dtype="int16"):
 
 
 def prepare_nifty(d):
+    logger = logging.getLogger(__name__)
     example_id = d.split("/")[-1]
     flair, t1, t1ce, t2 = load_channels(d, example_id)
     affine, header = flair.affine, flair.header
@@ -83,6 +84,7 @@ def prepare_nifty(d):
 
     if os.path.exists(os.path.join(d, example_id + "-seg.nii.gz")):
         seg = load_nifty(d, example_id, "seg")
+        logger.info(f"Segmentation Shape is: {seg.shape}")
         affine, header = seg.affine, seg.header
         vol = get_data(seg, "unit8")
         seg = nib.nifti1.Nifti1Image(vol, affine, header=header)
@@ -135,7 +137,7 @@ def prepare_dataset(data, train):
 
     print(f"Preparing BraTS21 dataset from: {data}")
     start = time.time()
-    # run_parallel(prepare_nifty, sorted(glob(os.path.join(data, "BraTS*"))))
+    run_parallel(prepare_nifty, sorted(glob(os.path.join(data, "BraTS*"))))
     prepare_dirs(data, train)
     prepare_dataset_json(data, train)
     end = time.time()
@@ -144,19 +146,20 @@ def prepare_dataset(data, train):
 
 def apply_preprocessing(subject, transform_pipeline, transL):
     logger = logging.getLogger(__name__)
-    logging.info("Applying transforms")
+    logger.info("Applying transforms")
     transformed_subject = subject
     for transform_name, transform_func in transform_pipeline.items():
         if transform_name in transL and transform_func is not None:
-            logging.info(f"\ntransformation is {transform_name}")
+            logger.info(f"\ntransformation is {transform_name}")
             transformed_subject = transform_func(transformed_subject)
     return transformed_subject
 
 def load_and_transform_images(inputs):
     logger = logging.getLogger(__name__)
-    pair, data_path = inputs
-    logger.info("my pair ", pair)
-    
+    pair, data_path, mode = inputs
+    logger.info("Image-Label pairs are: ", pair)
+    logger.info("Mode is: ", pair)
+
     image_path = pair["image"]
     label_path = pair["label"]
     
@@ -212,13 +215,13 @@ def preprocess_data(data_dir, args):
     return img as list of arrays, and mask as before
     '''
     filePaths = json.load(open(os.path.join(data_dir,'dataset.json'), "r"))
-    pair = filePaths["training"]
+    pair = filePaths[args.preproc_set]
 
     outpath = os.path.join(data_dir, args.data_grp + "_prepoc")
     call(f"mkdir -p {outpath}", shell=True)
+
     # Load and transform the images and segmentations
-    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
-    # load_and_transform_images(list(zip(pair, itertools.repeat(args.data)))[4])
+    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data, args.preproc_set))))
    
 def main():
     current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
@@ -227,13 +230,13 @@ def main():
 
     args = get_main_args()
       
-    # logging.info("Generating stacked nifti files.")
-    # startT = time.time()
-    # logging.info("Loaded all nifti files and saved image data")
-    # prepare_dataset(args.data, True)
-    # print("Finished!")
-    # endT = time.time()
-    # logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    logging.info("Generating stacked nifti files.")
+    startT = time.time()
+    logging.info("Loaded all nifti files and saved image data")
+    prepare_dataset(args.data, True)
+    print("Finished!")
+    endT = time.time()
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
     startT2 = time.time()
     logging.info("Beginning Preprocessing.")

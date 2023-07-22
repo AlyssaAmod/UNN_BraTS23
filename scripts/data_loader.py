@@ -62,9 +62,9 @@ def load_data(args, data_transforms):
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
 
     # Split data files
-    train_files, val_files, test_files = split_data(data_folders, seed) # seed for reproducibiilty to get same split
+    train_files, val_files = split_data(data_folders, seed) # seed for reproducibiilty to get same split
     
-    print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}\nNumber of test: files {len(test_files)}")
+    print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
     
     # Get data transforms
     # data_transforms = define_transforms(n_channels)
@@ -75,7 +75,7 @@ def load_data(args, data_transforms):
     image_datasets = {
     'train': MRIDataset(args, train_files, transform=data_transforms['train']),
     'val': MRIDataset(args, val_files, transform=data_transforms['val']),
-    'test': MRIDataset(args, test_files, transform=data_transforms['test'])
+    # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }
 
     # Create dataloaders
@@ -83,14 +83,14 @@ def load_data(args, data_transforms):
     dataloaders = {
         'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
         'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True),
-        'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
+        # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
     }
 
     # Save data split
     splitData = {
         'subjsTr' : train_files,
         'subjsVal' : val_files,
-        'subjsTest' : test_files    
+        # 'subjsTest' : test_files    
     }
     with open(args.data + str(args.data_used) + ".json", "w") as file:
         json.dump(splitData, file)
@@ -106,10 +106,10 @@ def split_data(data_folders, seed):
     '''
 
     # Split into train (70), val (15), test (15) -- can edit
-    train_files, test_files = train_test_split(data_folders, test_size=0.3, random_state=seed)
-    val_files, test_files = train_test_split(test_files, test_size=0.5, random_state=seed)
+    train_files, val_files = train_test_split(data_folders, test_size=0.7, random_state=seed)
+    # val_files, test_files = train_test_split(test_files, test_size=0.5, random_state=seed)
 
-    return train_files, val_files, test_files
+    return train_files, val_files
 
 if __name__=='__main__':
     main()

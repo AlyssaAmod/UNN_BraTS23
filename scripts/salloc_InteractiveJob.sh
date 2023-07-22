@@ -32,7 +32,7 @@ git=/home/guest187/GitRepo_Brats23/UNN_BraTS23/scripts
 python $git/monai_trainer.py --seed 42 --data $data_dir --results $results_dir --epochs 2 --gpus 1 --run_name "tester" --data_used "SSA" --criterion "dice" --batch_size=2
 
 
-
+# srun $VIRTUAL_ENV/bin/notebook.sh
 
 
 

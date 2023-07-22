@@ -65,6 +65,9 @@ def get_main_args(strings=None):
         default="other", choices=["data_prep", "other"], 
         help="Mode for dataset class call"
     )
+
+    arg("--run_name", type=str, help="Run name")
+
     #For file loading (paths & static vars)
     # Folders
     arg("--data", type=str, default="/data", help="Path to main data directory")
@@ -75,6 +78,7 @@ def get_main_args(strings=None):
     
     # Naming conventions & saving
     arg("--modal", type=list, default=["t1c", "t1n", "t2w", "t2f"], help="List of modality abbreviations")
+    arg("--data_used", type=str, default="all", choices=["all", "GLI", "SSA"], help="The set or subset of data that is used for training")
     arg("--data_grp", type=str, default="ATr", help="Dataset used",
         choices={"ATr": "BraTS23_train",
                   "AV": "BraTS23_val",
@@ -86,6 +90,7 @@ def get_main_args(strings=None):
                   "SV": "SSA_val",
                  "STe": "SSA_test"
         })
+
     arg("--config", type=str, default=None, help="Config file with arguments")          # <--- Do we need a configs file for training?
     arg("--logname", type=str, default="logs.json", help="Name of dlloger output")
     arg("--save_preds", action="store_true", help="Enable prediction saving")
@@ -115,8 +120,7 @@ def get_main_args(strings=None):
     arg("--batch_size", type=positive_int, default=4, help="Batch size")                                                    # <---------- CHANGE default
     arg("--optimiser", type=str, default="adam", choices=["sgd", "adam"], help="Optimiser")
     arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
-    arg("--run_name", type=str, help="Run name")
-    arg("--data_used", type=str, default="all", choices=["all", "GLI", "SSA"], help="The set or subset of data that is used for training")
+
     arg("--val_batch_size", type=positive_int, default=2, help="Validation batch size")                                     # <---------- CHANGE default
     arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
     # arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default

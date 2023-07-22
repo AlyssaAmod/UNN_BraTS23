@@ -65,26 +65,7 @@ def transforms_preproc(target_shape=False):
     normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
     # masked = tio.Mask(masking_method=tio.LabelMap(label))
     normalise = tio.ZNormalization()
-    fSSA = tio.Compose([
-            tio.OneOf([
-                tio.Compose([
-                    tio.RandomFlip(axes=0, p=0.3),
-                    tio.RandomFlip(axes=1, p=0.3),
-                    tio.RandomFlip(axes=2, p=0.3)]),
-                tio.RandomAffine(degrees=15,p=0.3)
-            ], p=0.8),
-            # tio.Resample((1.2, 1.2, 6)),
-            # tio.RandomAnisotropy(axes=(0, 1, 2), downsampling=(1, 6)),
-            tio.OneOf([
-                tio.RandomBlur(std=(0.5, 1.5)),
-                tio.RandomNoise(mean=0, std=(0, 0.33))
-            ], p=0.8),
-            tio.OneOf([
-                tio.RandomMotion(num_transforms=3, image_interpolation='nearest'),
-                tio.RandomBiasField(coefficients=1),
-                tio.RandomGhosting(intensity=1.5)
-            ], p=0.8)])
-
+    
         # Define the list of helper functions for the transformation pipeline
     transform_pipeline = {
         'checkRAS' : to_ras,
@@ -93,7 +74,7 @@ def transforms_preproc(target_shape=False):
         'ZnormFore' : normalise_foreground,
         #'MaskNorm' : masked,
         'Znorm': normalise,
-        'fSSA' : fSSA}
+        }
     
     return transform_pipeline
 
