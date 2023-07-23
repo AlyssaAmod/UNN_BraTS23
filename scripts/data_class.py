@@ -15,7 +15,7 @@ class MRIDataset(Dataset):
     folder structure: subjectID/image.nii, seg.nii (i.e. contains 2 files)
     """
 
-    def __init__(self, args, data_folders, transform=None, SSAtransform=None):
+    def __init__(self, data_dir, data_folders, transform=None, SSAtransform=None):
             self.data_folders = data_folders # path for each data folder in the set
             self.transform = transform
             self.SSAtransform = SSAtransform
@@ -23,7 +23,7 @@ class MRIDataset(Dataset):
             self.lbls = [] # store corresponding labels (paths)
             # run through each subjectID folder
             for img_folder in self.data_folders:
-                folder_path = os.path.join(args.data, img_folder)
+                folder_path = os.path.join(data_dir, img_folder)
                 # check if current file is from SSA dataset
                 self.SSA = True if 'SSA' in img_folder else False
                 for file in os.listdir(folder_path):

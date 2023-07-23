@@ -73,8 +73,8 @@ def load_data(args, data_transforms):
     # 'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
 
     image_datasets = {
-    'train': MRIDataset(args, train_files, transform=data_transforms['train']),
-    'val': MRIDataset(args, val_files, transform=data_transforms['val']),
+    'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
+    'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
     # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }
 
