@@ -62,14 +62,11 @@ results_dir = args.results
 logger.info(f"Setting up. Working from folder: {root_dir}. \nSaving to folder: {results_dir}.")
 logger.info(f"\nWorking with dataset: {args.data_used}.")
 
-# ---------------------------------------------------
-# Potentially useful functions for model tracking and checkpoint loading
-# ---------------------------------------------------
-
-def save_checkpoint(model, epoch, best_acc=0, dir_add=results_dir, args=args):
-    filename=f"chkpt_{args.run_name}_Epoch{epoch}={best_acc:.4f}.pt"
+# Save checkpoints
+def save_checkpoint(model, last_epoch, best_acc=0, dir_add=results_dir, args=args):
+    filename=f"chkpt_{args.run_name}_{args.data_used}.pt"
     state_dict = model.state_dict()
-    save_dict = {"epoch": epoch, "best_acc": best_acc, "state_dict": state_dict}
+    save_dict = {"last epoch": last_epoch, "best_acc": best_acc, "state_dict": state_dict}
     filename = os.path.join(dir_add, filename)
     torch.save(save_dict, filename)
     logger.info("\nSaving checkpoint", filename)
@@ -156,7 +153,7 @@ def inference(VAL_AMP, model, input):
             roi_size=(240, 240, 155),
             sw_batch_size=1,
             predictor=model,
-            overlap=0.5,
+            overlap=0.25,
             mode='gaussian'
         )
     if VAL_AMP:
@@ -164,10 +161,10 @@ def inference(VAL_AMP, model, input):
             return _compute(input)
     else:
         return _compute(input)
+    
 # ---------------------------------------------------
 # TRAINING LOOP
 # ---------------------------------------------------
-
 """Define training loop:
     1. initialise empty lists for val
     2. Add GradScalar which uses automatic mixed precision to accelerate training
@@ -203,8 +200,6 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
         progress_bar.set_description(f"Training Epoch {epoch}")
 
         for step, batch_data in progress_bar:
-            step_start = time.time()
-
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             logger.info("\n",inputs.shape)
             optimiser.zero_grad()
@@ -228,7 +223,7 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
             epoch_loss2 = epoch_loss/(step+1)
             lr_scheduler.step()
         epoch_loss_list.append(epoch_loss2)
-        logger.info(f"\nEpoch {epoch} average loss: {epoch_loss2:.4f}")
+        logger.info(f"\nEpoch {epoch} average loss: {epoch_loss2:.3f}")
         
         #Run validation for current epoch
         if (epoch + 1) % val_interval == 0:
@@ -253,10 +248,10 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                 val_epoch_loss += val_loss.item()
                 progress_bar.set_postfix({"Val_loss": val_epoch_loss / (step + 1)})
             val_epoch_loss_list.append(val_epoch_loss / (step + 1))
-            
+
             metric = dice_metric.aggregate()[0].item()
             metric_values.append(metric)
-
+            last_epoch = [metric, epoch_loss2, val_epoch_loss, val_epoch_loss / (step + 1) ]
             metric_batch = dice_metric_batch.aggregate()
             # logger.info(metric)
             # logger.info(metric_batch)
@@ -278,22 +273,19 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                 best_metrics_epochs_and_time[0].append(best_metric)
                 best_metrics_epochs_and_time[1].append(best_metric_epoch)
                 best_metrics_epochs_and_time[2].append(time.time() - total_start)
-                save_checkpoint(
-                        model,
-                        epoch,
-                        best_acc=best_metric,
-                    )
-                # torch.save(
-                #     model.state_dict(),
-                #     os.path.join(args.result, f"best_metric_model_{args.run_name}.pth"),
-                # )
-                logger.info("\nsaved new best metric model")
-            logger.info(
-                f"\ncurrent epoch: {epoch + 1} current mean dice: {metric:.4f}"
-                f"\nMean Dice per Region is: label 1: {metric_1:.4f};  label 2: {metric_2:.4f} label 3: {metric_3:.4f}"
-                f"\nbest mean dice: {best_metric:.4f}"
-                f" at epoch: {best_metric_epoch}"
-            )
-        logger.info(f"Total time for epoch {epoch + 1} is: {(time.time() - epoch_start):.4f}")
+                logger.info("\n New best metric model")
+
+        logger.info(
+            f"\ncurrent epoch: {epoch + 1} current mean dice: {metric:.3f}"
+            f"\nMean Dice per Region is: label 1: {metric_1:.4f};  label 2: {metric_2:.3f} label 3: {metric_3:.3f}"
+            f"\nbest mean dice: {best_metric:.4f} at epoch: {best_metric_epoch}"
+        )
+        save_checkpoint(
+                    model,
+                    last_epoch,
+                    best_acc=best_metric,
+                )
+        logger.info(f"Total time for epoch {epoch + 1} is: {(time.time() - epoch_start):.3f}")
+
     total_time = time.time() - total_start
     logger.info(f"Training completed. Total time taken: {total_time}")

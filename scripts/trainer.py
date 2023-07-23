@@ -1,12 +1,11 @@
 from monai_functions import *
 from utils.utils import get_main_args
 
-"""General Setup: 
-    logging,
-    utils.args 
-    seed,
-    cuda, 
-    root dir"""
+"""
+General Setup: 
+    logging, utils.args, seed, cuda, root dir
+"""
+
 current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
 log_file_name = f"trainin_{current_datetime}.log"
 logging.basicConfig(
@@ -15,20 +14,19 @@ logging.basicConfig(
     filename=log_file_name)
 
 args = get_main_args()
+
 set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# root_dir = args.data
-# results_dir = args.results
 
-model, n_channels = define_model(args.ckpt_path)
+#----------------------- SETUP -----------------------
 
-# Print out model architecture
-# print(model)
+model, n_channels = define_model(args.ckpt_path)                            #get model and print out model architecture
+with open(f'{args.run_name}-{args.exec_mode}_modelArch.txt', 'w') as f:
+    print(model, file=f)
 
-dataloaders = define_dataloaders(n_channels)
+dataloaders = define_dataloaders(n_channels)                                #load datasets
 train_loader, val_loader = dataloaders['train'], dataloaders['val']
+optimiser, criterion, lr_scheduler = model_params(args, model)              #set model params
 
-optimiser, criterion, lr_scheduler = model_params(args, model)
-
-# TRAIN MODEL
+#----------------------- TRAIN MODEL -----------------------
 train(args, model, device, train_loader, val_loader, optimiser, criterion, lr_scheduler)
