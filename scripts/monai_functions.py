@@ -43,7 +43,7 @@ from monai.utils import first
 from monai.utils.misc import set_determinism
 
 # Other imports (unsure)
-import monai.modelZoo_monai as mZoo
+import modelZoo_monai as mZoo
 # ---------------------------------------------------
 
 """General Setup: 
@@ -77,6 +77,7 @@ Define model architecture:
         Done before data loader so that transforms has n_channels for EnsureShapeMultiple
 """
 def define_model(checkpoint=None):
+    logger = logging.getLogger(__name__)
     model=mZoo.unet()
     model.to(device)
     n_channels = len(model.channels)
@@ -106,6 +107,7 @@ def define_dataloaders(n_channels):
     lr
 """
 def model_params(args, model):
+    logger = logging.getLogger(__name__)
     # Define optimiser
     if args.optimiser == "adam":
         optimiser = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
@@ -172,7 +174,8 @@ def inference(VAL_AMP, model, input):
     4. validate training epoch
 """
 def train(args, model, device, train_loader, val_loader, optimiser, criterion, lr_scheduler):
-
+    logger = logging.getLogger(__name__)
+    logger.info("Starting Training")
     VAL_AMP, dice_metric, dice_metric_batch, post_trans = val_params()
 
     # Train model --> see MONAI notebook examples
@@ -201,12 +204,12 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
 
         for step, batch_data in progress_bar:
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
-            logger.info("\n",inputs.shape)
+            logger.info(f"\n{inputs.shape}")
             optimiser.zero_grad()
 
             with autocast(): # cast tensor to smaller memory footprint to avoid OOM
                 outputs = model(inputs)
-                logger.info("\n",outputs.shape)
+                logger.info(f"\n{outputs.shape}")
                 loss = criterion.forward(outputs, labels)
 
             # Calculate Loss and Update optimiser using scalar
@@ -273,7 +276,7 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                 best_metrics_epochs_and_time[0].append(best_metric)
                 best_metrics_epochs_and_time[1].append(best_metric_epoch)
                 best_metrics_epochs_and_time[2].append(time.time() - total_start)
-                logger.info("\n New best metric model")
+                logger.info(f"\nNew best metric model")
 
         logger.info(
             f"\ncurrent epoch: {epoch + 1} current mean dice: {metric:.3f}"

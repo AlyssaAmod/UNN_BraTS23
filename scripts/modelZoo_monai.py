@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import monai.networks.nets as nets
 
-def unet(args):
+def unet():
     unet = nets.UNet(
         spatial_dims=3,
         in_channels=4,
@@ -13,9 +13,9 @@ def unet(args):
         # channels=(32, 64, 128, 256, 320, 320), #nnunet channels, deoth 6
         channels=(64, 96, 128, 192, 256, 384, 512), # optinet, depth 7
         strides=(2, 2, 2, 2, 2, 2,), # length should = len(channels) - 1
-        # kernel_size=,
+        kernel_size=3,
         # num_res_units=args.res_block,
-        # dropout=0.0,)
+        dropout=0.7
     )
     return unet
 

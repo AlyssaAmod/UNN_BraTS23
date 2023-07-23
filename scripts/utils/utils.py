@@ -75,7 +75,8 @@ def get_main_args(strings=None):
     arg("--results", type=str, default="/results", help="Path to results directory")
     arg("--ckpt_path", type=str, default=None, help="Path for loading checkpoint")
     arg("--ckpt_store_dir", type=str, default="/results", help="Path for saving checkpoint")
-    
+    arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
+
     # Naming conventions & saving
     arg("--modal", type=list, default=["t1c", "t1n", "t2w", "t2f"], help="List of modality abbreviations")
     arg("--data_used", type=str, default="all", choices=["all", "GLI", "SSA"], help="The set or subset of data that is used for training")
@@ -122,7 +123,6 @@ def get_main_args(strings=None):
     arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
 
     arg("--val_batch_size", type=positive_int, default=2, help="Validation batch size")                                     # <---------- CHANGE default
-    arg("--resume_training", action="store_true", help="Resume training from the last checkpoint")
     # arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default
     # arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
     

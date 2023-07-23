@@ -91,23 +91,22 @@ def load_data(args, data_transforms):
         # data_transforms = define_transforms(n_channels)
 
     # fakeSSA transforms are applied to GLI data to worse their image quality
-    image_datasets = {
-        'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
-        'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
-        # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
-    }
+    # image_datasets = {
+    #     'train': MRIDataset(args.data,train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
+    #     'val': MRIDataset(args.data,val_files, transform=data_transforms['val']),
+    #     # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
+    # }
 
     image_datasets = {
         'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
         'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
-        # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }
 
     # Create dataloaders
     # can set num_workers for running sub-processes
     dataloaders = {
         'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
-        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True),
+        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True)
         # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
     }
 

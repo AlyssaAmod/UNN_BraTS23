@@ -37,7 +37,7 @@ class MRIDataset(Dataset):
         return len(self.imgs)
     
     def __getitem__(self, idx):
-
+        name = os.path.dirname(self.imgs[idx])
         # Load files
         image = np.load(self.imgs[idx])
         mask = np.load(self.lbls[idx])
@@ -55,14 +55,15 @@ class MRIDataset(Dataset):
         # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
             subject = tio.Subject(
                 image=tio.ScalarImage(tensor=image),
-                mask=tio.LabelMap(tensor=mask)
+                mask=tio.LabelMap(tensor=mask),
+                name=name
                 )
             tranformed_subject = self.transform(subject)
             # Apply transformation to GLI data to reduce quality (creating fake SSA data)
             if self.SSA == False and self.SSAtransform is not None:
                 tranformed_subject = self.SSAtransform(tranformed_subject)
             
-            print("Tranformed_subject: ", tranformed_subject)
+            print("Tranformed_subject: ", tranformed_subject.name)
             image = tranformed_subject["image"].data
             mask = tranformed_subject["mask"].data
 

@@ -196,7 +196,7 @@ def load_and_transform_images(inputs):
     # Save the transformed images and segmentations to .npy files
     transformed_image = transformed_subject["image"]
     img_npy = transformed_image.numpy()
-    logger.info(f"Image Numpy Shape: {img_npy.shape}")
+    logger.info("Image Numpy Shape:",img_npy.shape)
     image_name = os.path.basename(image_path).split(".")[0]
     img_sv_path = os.path.join(data_path, patient_folder, f"{image_name}.npy")
     np.save(img_sv_path, img_npy)
