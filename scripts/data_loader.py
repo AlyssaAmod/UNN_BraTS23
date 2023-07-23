@@ -69,11 +69,11 @@ def load_data(args, data_transforms):
     # Get data transforms
     # data_transforms = define_transforms(n_channels)
     # fakeSSA transforms are applied to GLI data to worse their image quality
-    # image_datasets = {
-    # 'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
-
     image_datasets = {
-    'train': MRIDataset(args, train_files, transform=data_transforms['train']),
+        'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
+
+    # image_datasets = {
+    # 'train': MRIDataset(args, train_files, transform=data_transforms['train']),
     'val': MRIDataset(args, val_files, transform=data_transforms['val']),
     # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }

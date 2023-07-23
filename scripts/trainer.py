@@ -7,7 +7,13 @@ from utils.utils import get_main_args
     seed,
     cuda, 
     root dir"""
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
+log_file_name = f"trainin_{current_datetime}.log"
+logging.basicConfig(
+    level=logging.DEBUG, 
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename=log_file_name)
+
 args = get_main_args()
 set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

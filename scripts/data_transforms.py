@@ -63,7 +63,6 @@ def transforms_preproc(target_shape=False):
         crop_pad = None
     one_hot_enc = tio.OneHot(num_classes=4)
     normalise_foreground = tio.ZNormalization(masking_method=lambda x: x > x.float().mean()) # threshold values above mean only, for binary mask
-    # masked = tio.Mask(masking_method=tio.LabelMap(label))
     normalise = tio.ZNormalization()
     
         # Define the list of helper functions for the transformation pipeline

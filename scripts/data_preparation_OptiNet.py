@@ -41,9 +41,9 @@ import torch
 import torchio as tio
 
 import utils.utils
-from ..utils.utils import get_main_args
-from ..data_transforms import transforms_preproc
-from ..data_transforms import define_transforms
+from utils.utils import get_main_args
+from data_transforms import transforms_preproc
+from data_transforms import define_transforms
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -156,21 +156,30 @@ def apply_preprocessing(subject, transform_pipeline, transL):
 
 def load_and_transform_images(inputs):
     logger = logging.getLogger(__name__)
-    pair, data_path, mode = inputs
+    
+    pair, data_path = inputs
+    
     logger.info("Image-Label pairs are: ", pair)
     logger.info("Mode is: ", pair)
 
+    # mode = "training"
+    mode = "test"
+
     image_path = pair["image"]
-    label_path = pair["label"]
-    
-    # Load the image and label using TorchIO
-    subject = tio.Subject(
-        image=tio.ScalarImage(os.path.join(data_path, image_path)),
-        label=tio.LabelMap(os.path.join(data_path, label_path))
-    )
+    if mode == "training":
+        label_path = pair["label"]
+        transL = ['checkRAS','ohe','ZnormFore']
+        subject = tio.Subject(
+            image=tio.ScalarImage(os.path.join(data_path, image_path)),
+            label=tio.LabelMap(os.path.join(data_path, label_path))
+        )
+    else:
+        subject = tio.Subject(
+            image=tio.ScalarImage(os.path.join(data_path, image_path)))
+        transL = ['checkRAS','ZnormFore']
 
     transform_pipeline = transforms_preproc(target_shape=True)
-    transL = ['checkRAS','ohe','ZnormFore']
+
     # transL = ['CropOrPad']
     # OPTIONS ARE:
                 # 'checkRAS' : to_ras,
@@ -182,27 +191,28 @@ def load_and_transform_images(inputs):
                 # 'fSSA' : fSSA
     # Apply the preprocessing steps
     transformed_subject = apply_preprocessing(subject, transform_pipeline, transL)
-    
-    transformed_image = transformed_subject["image"]
-    transformed_label = transformed_subject["label"]
-      
-    # Save the transformed images and segmentations to .npy files
-    img_npy = transformed_image.numpy()
-    lbl_npy = transformed_label.numpy()
-    logger.info(f"Image Numpy Shape: {img_npy.shape}")
-    logger.info(f"Label Numpy Shape: {lbl_npy.shape}")
     patient_folder = os.path.basename(image_path).split(".")[0][:-4]
-    logger.info("PATIENT FOLDER :", patient_folder)
-    image_name = os.path.basename(image_path).split(".")[0] # os.path.splitext(os.path.basename(image_path))[0]
-    label_name = os.path.basename(label_path).split(".")[0] # os.path.splitext(os.path.basename(label_path))[0]
-    img_sv_path = os.path.join(data_path, patient_folder, f"{image_name}.npy")
-    lbl_sv_path = os.path.join(data_path, patient_folder, f"{label_name}.npy")
-    logger.info("DATA PATH : ", data_path)
-    logger.info("IMAGE: ", image_name, ";    dest: ", img_sv_path)
-    logger.info("LABEL: ", label_name,";    dest: ", lbl_sv_path)
-    np.save(img_sv_path, img_npy)
-    np.save(lbl_sv_path, lbl_npy)
 
+    # Save the transformed images and segmentations to .npy files
+    transformed_image = transformed_subject["image"]
+    img_npy = transformed_image.numpy()
+    logger.info(f"Image Numpy Shape: {img_npy.shape}")
+    image_name = os.path.basename(image_path).split(".")[0]
+    img_sv_path = os.path.join(data_path, patient_folder, f"{image_name}.npy")
+    np.save(img_sv_path, img_npy)
+    logger.info("Saved numpy file: ", image_name, ";    to path: ", img_sv_path)
+
+    if mode == "training":
+        transformed_label = transformed_subject["label"]
+        lbl_npy = transformed_label.numpy()
+        logger.info(f"Label Numpy Shape: {lbl_npy.shape}")
+        label_name = os.path.basename(label_path).split(".")[0]
+        lbl_sv_path = os.path.join(data_path, patient_folder, f"{label_name}.npy")
+        logger.info("Saved numpy file: : ", label_name,";    to path: ", lbl_sv_path)  
+        np.save(lbl_sv_path, lbl_npy)
+    logger.info("DATA PATH : ", data_path, "PATIENT FOLDER :", patient_folder)
+     # os.path.splitext(os.path.basename(image_path))[0]
+     # os.path.splitext(os.path.basename(label_path))[0]
 
 def preprocess_data(data_dir, args):
     '''
@@ -221,7 +231,7 @@ def preprocess_data(data_dir, args):
     call(f"mkdir -p {outpath}", shell=True)
 
     # Load and transform the images and segmentations
-    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data, args.preproc_set))))
+    run_parallel(load_and_transform_images, list(zip(pair, itertools.repeat(args.data))))
    
 def main():
     current_datetime = time.strftime("%Y-%m-%d_%H-%M", time.localtime())
@@ -230,13 +240,18 @@ def main():
 
     args = get_main_args()
       
-    logging.info("Generating stacked nifti files.")
-    startT = time.time()
-    logging.info("Loaded all nifti files and saved image data")
-    prepare_dataset(args.data, True)
-    print("Finished!")
-    endT = time.time()
-    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    # logging.info("Generating stacked nifti files.")
+    # startT = time.time()
+    # logging.info("Loaded all nifti files and saved image data")
+    
+    # if args.preproc_set == "test":
+    #     prepare_dataset(args.data, False)
+    # else:
+    #     prepare_dataset(args.data, True)
+
+    # print("Finished!")
+    # endT = time.time()
+    # logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
     startT2 = time.time()
     logging.info("Beginning Preprocessing.")

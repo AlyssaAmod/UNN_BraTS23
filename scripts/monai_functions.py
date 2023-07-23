@@ -1,3 +1,4 @@
+# ---------------------------------------------------
 # Import general libraries
 import numpy as np
 import time
@@ -28,12 +29,12 @@ from monai.handlers import (
     TensorBoardStatsHandler,
 )
 from monai.metrics import DiceMetric, LossMetric, HausdorffDistanceMetric
-from monai.losses import DiceLoss, DiceFocalLoss
-from monai.networks import nets as monNets
+from monai.losses import DiceFocalLoss
+
+import monai.networks.nets as monNets
 from monai.networks.nets import UNet
 from monai.transforms import (
     Activations,
-    EnsureChannelFirst,
     AsDiscrete,
     Compose
 )
@@ -42,64 +43,61 @@ from monai.utils import first
 from monai.utils.misc import set_determinism
 
 # Other imports (unsure)
-import ignite
-import nibabel
+import monai.modelZoo_monai as mZoo
+# ---------------------------------------------------
 
 """General Setup: 
-    logging,
-    utils.args 
-    seed,
-    cuda, 
-    root dir"""
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-args = dl.get_main_args()
-set_determinism(args.seed)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-root_dir = args.data
-results_dir = args.results
-"""
-Potentially useful functions for model tracking and checkpoint loading
+    logging, utils.args, seed, cuda, root dir
 """
 
+logger = logging.getLogger(__name__)
+args = dl.get_main_args()
+
+set_determinism(args.seed)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+root_dir = args.data
+results_dir = args.results
+logger.info(f"Setting up. Working from folder: {root_dir}. \nSaving to folder: {results_dir}.")
+
+# ---------------------------------------------------
+# Potentially useful functions for model tracking and checkpoint loading
+# ---------------------------------------------------
+
 def save_checkpoint(model, epoch, best_acc=0, dir_add=results_dir, args=args):
-    filename=f"chkpt_{args.run_name}_{epoch}_{best_acc}.pt"
+    filename=f"chkpt_{args.run_name}_Epoch{epoch}={best_acc:.4f}}.pt"
     state_dict = model.state_dict()
     save_dict = {"epoch": epoch, "best_acc": best_acc, "state_dict": state_dict}
     filename = os.path.join(dir_add, filename)
     torch.save(save_dict, filename)
-    print("\nSaving checkpoint", filename)
+    logger.info("\nSaving checkpoint", filename)
 
-
-"""Define model architecture:
+# ---------------------------------------------------
+"""
+Define model architecture:
         Done before data loader so that transforms has n_channels for EnsureShapeMultiple
 """
 def define_model(checkpoint=None):
-    model=UNet(
-        spatial_dims=3,
-        in_channels=4,
-        out_channels=3,
-        # channels=(16, 32, 64, 128, 256),
-        # channels=(32, 64, 128, 256, 320, 320), #nnunet channels, depth 6
-        channels=(64, 96, 128, 192, 256, 384, 512), # optinet, depth 7
-        strides=(2, 2, 2, 2, 2, 2), # length should = len(channels) - 1
-        # kernel_size=,
-        # num_res_units=,
-        # dropout=0.0,
-        ).to(device)
+    model=mZoo.unet()
+    model.to(device)
     n_channels = len(model.channels)
-    print(f"Number of channels: {n_channels}")
+    logger.info(f"Number of channels: {n_channels}")
 
     if checkpoint != None:
         model.load_state_dict(torch.load(checkpoint))
 
     return model, n_channels
 
-"""Setup transforms, dataset"""
+# ---------------------------------------------------
+# SET UP TRAINING
+# ---------------------------------------------------
+
+"""
+Setup transforms, dataset
+"""
 def define_dataloaders(n_channels):
-    # Define transforms
-    data_transform = dl.define_transforms(n_channels)
-    # Load data
-    dataloaders = dl.load_data(args, data_transform)                      # this also saves a json splitData
+    data_transform = dl.define_transforms(n_channels)       # Define transforms
+    dataloaders = dl.load_data(args, data_transform)        # Load data; also saves json splitData
     # train_loader, val_loader = dataloaders['train'], dataloaders['val']
     return dataloaders
 
@@ -112,34 +110,34 @@ def model_params(args, model):
     # Define optimiser
     if args.optimiser == "adam":
         optimiser = torch.optim.Adam(params=model.parameters(), lr=args.learning_rate)
-        print("Adam optimizer set")
-    elif args.optimiser == "sgd":
-        optimiser = torch.optim.SGD(params=model.parameters())
-        print("SGD optimizer set")
+        logger.info("Adam optimizer set")
     elif args.optimiser == "novo":
         optimiser = monai.optimizers.Novograd(params=model.parameters(), lr=args.learning_rate)
     else:
-        print("Error, no optimiser provided")
+        logger.info("Error, no optimiser provided")
 
     # Define loss function
     if args.criterion == "ce":
         criterion = nn.CrossEntropyLoss()
-        print("Cross Entropy Loss set")
+        logger.info("Cross Entropy Loss set")
     elif args.criterion == "dice":
         criterion = DiceFocalLoss(squared_pred=True, to_onehot_y=False, sigmoid=True)
-        print("Focal-Dice Loss set")
+        logger.info("Focal-Dice Loss set")
     else:
-        print("Error, no loss fn provided")
+        logger.info("Error, no loss fn provided")
 
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=args.epochs)
     
     return optimiser, criterion, lr_scheduler
 
-"""
-Setup validation stuff
+# ---------------------------------------------------
+# SET UP VALIDATION 
+# ---------------------------------------------------
+
+"""Key Validation functions
     metrics
     post trans ???????
-    define inference
+    inference
 """
 def val_params():
     VAL_AMP = True
@@ -164,14 +162,15 @@ def inference(VAL_AMP, model, input):
             return _compute(input)
     else:
         return _compute(input)
+# ---------------------------------------------------
+# TRAINING LOOP
+# ---------------------------------------------------
 
-"""
-Define training loop
-    initialise empty lists for val
-    Add GradScalar which uses automatic mixed precision to accelerate training
-    forward and backward passes
-    validate training epoch
-
+"""Define training loop:
+    1. initialise empty lists for val
+    2. Add GradScalar which uses automatic mixed precision to accelerate training
+    3. forward and backward passes
+    4. validate training epoch
 """
 def train(args, model, device, train_loader, val_loader, optimiser, criterion, lr_scheduler):
 
@@ -179,18 +178,14 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
 
     # Train model --> see MONAI notebook examples
     val_interval = 1
-    epoch_loss_list = []
-    val_epoch_loss_list = []
+    epoch_loss_list, val_epoch_loss_list= [], []
 
     best_metric = -1
     best_metric_epoch = -1
     best_metrics_epochs_and_time = [[], [], []]
 
     metric_values = []
-    metric_values_0 = []
-    metric_values_1 = []
-    metric_values_2 = []
-    metric_values_3 = []
+    metric_values_0, metric_values_1, metric_values_2, metric_values_3 = [], [], [], []
 
     scaler = GradScaler()
 
@@ -198,54 +193,42 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
 
     for epoch in range(args.epochs):
         epoch_start = time.time()
-        # print("-" * 10)
-        # print(f"epoch {epoch + 1}/{args.epochs}")
+
         model.train()
         epoch_loss = 0
+
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), dynamic_ncols=True)
         progress_bar.set_description(f"Training Epoch {epoch}")
 
-        # for step, batch in progress_bar:
         for step, batch_data in progress_bar:
             step_start = time.time()
-            inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
-            optimiser.zero_grad()
-        
-            with autocast(): # cast tensor to smaller memory footprint to avoid OOM
-                """ FOR USE WITH A DIFFUSION MODEL ONLY
-                # Generate random noise
-                noise = torch.randn_like(images).to(device)
-                Create timesteps
-                timesteps = torch.randint(
-                    0, inferer.scheduler.num_train_timesteps, (images.shape[0],), device=images.device
-                ).long()
-                # Get model prediction
-                noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=timesteps)
-                loss = F.mse_loss(noise_pred.float(), noise.float())
-                """
 
-                # print(inputs.shape)
+            inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
+            logger.info("\n",inputs.shape)
+            optimiser.zero_grad()
+
+            with autocast(): # cast tensor to smaller memory footprint to avoid OOM
                 outputs = model(inputs)
-                # print(outputs.shape)
+                logger.info("\n",outputs.shape)
                 loss = criterion.forward(outputs, labels)
-            
+
             # Calculate Loss and Update optimiser using scalar
             scaler.scale(loss).backward()
             scaler.step(optimiser)
             scaler.update()
             epoch_loss += loss.item()
-            progress_bar.set_postfix({"bat_train_loss" : loss.item(), "Ave_train_loss" : epoch_loss/(step + 1)})
             
-            print(
-                f"\n{step}/{len(train_loader.dataset)//train_loader.batch_size}"
-                f",     Batch train_loss: {loss.item():.4f}"
-                f",     Step time: {(time.time() - step_start):.4f}"
-            )
+            progress_bar.set_postfix({
+                "bat_train_loss" : loss.item(), 
+                "Ave_train_loss" : epoch_loss/(step + 1)
+            })
+
             epoch_loss2 = epoch_loss/(step+1)
             lr_scheduler.step()
         epoch_loss_list.append(epoch_loss2)
-        print(f"\nEpoch {epoch} average loss: {epoch_loss2:.4f}")
+        logger.info(f"\nEpoch {epoch} average loss: {epoch_loss2:.4f}")
         
+        #Run validation for current epoch
         if (epoch + 1) % val_interval == 0:
             model.eval()
             val_epoch_loss = 0
@@ -254,21 +237,14 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
 
             for step, batch in enumerate(val_loader):
                 val_inputs, val_labels = batch[0].to(device), batch[1].to(device)
-                """ FOR USE WITH A DIFFUSION MODEL ONLY
-                timesteps = torch.randint(
-                    0, inferer.scheduler.num_train_timesteps, (images.shape[0],), device=images.device
-                ).long()
-
-                # Get model prediction
-                noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=timesteps)
-                val_loss = F.mse_loss(noise_pred.float(), noise.float())
-                """
+                
                 with torch.no_grad():
                     val_outputs = inference(VAL_AMP, model, val_inputs)
                     val_loss = criterion.forward(val_outputs, val_labels)
                     
                     val_labels_list = decollate_batch(val_labels)
                     val_outputs_convert = [post_trans(i) for i in decollate_batch(val_outputs)]
+                    
                     dice_metric(y_pred=val_outputs_convert, y=val_labels_list)
                     dice_metric_batch(y_pred=val_outputs_convert, y=val_labels_list)
 
@@ -278,20 +254,17 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
             
             metric = dice_metric.aggregate()[0].item()
             metric_values.append(metric)
+
             metric_batch = dice_metric_batch.aggregate()
-            # print(metric)
-            # print(metric_batch)
-
+            # logger.info(metric)
+            # logger.info(metric_batch)
             metric_0 = metric_batch[0][0].item()
-            metric_values_0.append(metric_0)
-
             metric_1 = metric_batch[0][1].item()
-            metric_values_1.append(metric_1)
-
             metric_2 = metric_batch[0][2].item()
-            metric_values_2.append(metric_2)
-
             metric_3 = metric_batch[0][3].item()
+            metric_values_0.append(metric_0)
+            metric_values_1.append(metric_1)
+            metric_values_2.append(metric_2)
             metric_values_3.append(metric_3)
 
             dice_metric.reset()
@@ -308,16 +281,17 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                         epoch,
                         best_acc=best_metric,
                     )
-                torch.save(
-                    model.state_dict(),
-                    os.path.join(args.result, f"best_metric_model_{args.run_name}.pth"),
-                )
-                print("\nsaved new best metric model")
-            print(
+                # torch.save(
+                #     model.state_dict(),
+                #     os.path.join(args.result, f"best_metric_model_{args.run_name}.pth"),
+                # )
+                logger.info("\nsaved new best metric model")
+            logger.info(
                 f"\ncurrent epoch: {epoch + 1} current mean dice: {metric:.4f}"
                 f"\nMean Dice per Region is: label 1: {metric_1:.4f};  label 2: {metric_2:.4f} label 3: {metric_3:.4f}"
                 f"\nbest mean dice: {best_metric:.4f}"
                 f" at epoch: {best_metric_epoch}"
             )
-        print(f"time consuming of epoch {epoch + 1} is: {(time.time() - epoch_start):.4f}")
+        logger.info(f"Total time for epoch {epoch + 1} is: {(time.time() - epoch_start):.4f}")
     total_time = time.time() - total_start
+    logger.info(f"Training completed. Total time taken: {total_time}")
