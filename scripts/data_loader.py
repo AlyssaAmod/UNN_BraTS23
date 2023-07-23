@@ -1,59 +1,80 @@
-import torch
 import os
-import torch.utils.data as data_utils
-import json
-from subprocess import call
-from data_class import MRIDataset
-from sklearn.model_selection import train_test_split
-from data_transforms import define_transforms
-from utils.utils import get_main_args
 import pickle
 import glob
+import json
+import logging
+from subprocess import call
+
+from data_class import MRIDataset
+from data_transforms import define_transforms
+from utils.utils import get_main_args
+
+import torch.utils.data as data_utils
+from sklearn.model_selection import train_test_split
+
 
 def main():
-    # FUNCTION JUST TO TEST DATA CLASS WORKS CORRECTLY
+    """
+    This main function is not called during training.
+
+    Use for testing that dataloaders, and data class module work correctly
+    """
     args = get_main_args()
 
     ## Alex: testing from terminal
     data_dir = '/scratch/guest187/Data/train_all'
+    
     data_folders = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if not (file.endswith(".json") or file == 'images' or file == 'labels' or file == 'ATr_prepoc')]
+
+    print(data_folders)
+    
     batch_size = 8
 
-    # print(data_folders)
-
-    # Code to save config file
-    # pickle.dump(
-    #     {
-    #         "patch_size": [128, 128, 128],
-    #         "spacings": [1.0, 1.0, 1.0],
-    #         "n_class": 4,
-    #         "in_channels": 4,
-    #     },
-    #     open(os.path.join('/scratch/guest187/Data/train_all', "config.pkl"), "wb"),
-    # )
+    ## Code to save config file
+    pickle.dump(
+        {
+            "patch_size": [128, 128, 128],
+            "spacings": [1.0, 1.0, 1.0],
+            "n_class": 4,
+            "in_channels": 4,
+        },
+        open(os.path.join('/scratch/guest187/Data/train_all', "config.pkl"), "wb"),
+    )
 
     dataloaders = load_data(data_dir, batch_size, args)
     print(dataloaders)
+    
     training_set = dataloaders['train']
     
-    # for img, label in training_set:
-    #     print(f"Image shape: {img.shape}")
-    #     print(f"Label shape: {label.shape}")
+    for img, label in training_set:
+        print(f"Image shape: {img.shape}")
+        print(f"Label shape: {label.shape}")
     
-# MAIN FUNCTION TO USE
+
 def load_data(args, data_transforms):
+
     '''
-    Input:
-    data_folders : list of all available data files
-    batch_size (int) : define batch size to be used
+    This function is called during training after define_transforms(n_channels)
+
+    It takes as input
+        args: argparsers from the utils script 
+            args.seed
+            args.data_used: 'all', 'GLI', 'SSA'
+        data_transforms: a dictionary of transformations to apply to the data during training
 
     Returns dataloaders ready to be fed into model
     '''
+    logger = logging.getLogger(__name__)
+
+    # Set a seed for reproducibility if you want the same split - optional
     if args.seed != None:
         seed=args.seed
+        logger.info(f"Seed set to {seed}.")
     else:
         seed=None
-
+        logger.info("No seed has been set")
+    
+    # Locate data based on which dataset is being used
     if args.data_used == 'all':
         data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
     elif args.data_used == "GLI":
@@ -62,20 +83,24 @@ def load_data(args, data_transforms):
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
 
     # Split data files
-    train_files, val_files = split_data(data_folders, seed) # seed for reproducibiilty to get same split
+    train_files, val_files = split_data(data_folders, seed) 
+    logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
     
-    print(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
-    
-    # Get data transforms
-    # data_transforms = define_transforms(n_channels)
+    ###### We now get data transforms before calling load_data
+        # Get data transforms
+        # data_transforms = define_transforms(n_channels)
+
     # fakeSSA transforms are applied to GLI data to worse their image quality
     image_datasets = {
         'train': MRIDataset(train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
+        'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
+        # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
+    }
 
-    # image_datasets = {
-    # 'train': MRIDataset(args, train_files, transform=data_transforms['train']),
-    'val': MRIDataset(args, val_files, transform=data_transforms['val']),
-    # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
+    image_datasets = {
+        'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
+        'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
+        # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     }
 
     # Create dataloaders
@@ -100,14 +125,21 @@ def load_data(args, data_transforms):
 def split_data(data_folders, seed):
     '''
     Function to split dataset into train/val/test splits, given all avilable data.
-
+    Input:
+        list of paths to numpy files
     Returns:
-    3 lists for each train, val, test sets, where each list contains the file names to be used in the set
+        lists for each train and val/test sets, where each list contains the file names to be used in the set
     '''
+    #-----------------------------
+    # originally we split as 3: train-test-val train (70), val (15), test (15):
+        # train_files, test_files = train_test_split(data_folders, test_size=0.7, random_state=seed)
+        # val_files, test_files = train_test_split(test_files, test_size=0.5, random_state=seed)
 
-    # Split into train (70), val (15), test (15) -- can edit
+    #-----------------------------
+    # training loop split is train-val (70-30)
     train_files, val_files = train_test_split(data_folders, test_size=0.7, random_state=seed)
-    # val_files, test_files = train_test_split(test_files, test_size=0.5, random_state=seed)
+
+    # ??? validation/testing???
 
     return train_files, val_files
 

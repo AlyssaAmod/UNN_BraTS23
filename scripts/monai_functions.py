@@ -58,14 +58,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 root_dir = args.data
 results_dir = args.results
+
 logger.info(f"Setting up. Working from folder: {root_dir}. \nSaving to folder: {results_dir}.")
+logger.info(f"\nWorking with dataset: {args.data_used}.")
 
 # ---------------------------------------------------
 # Potentially useful functions for model tracking and checkpoint loading
 # ---------------------------------------------------
 
 def save_checkpoint(model, epoch, best_acc=0, dir_add=results_dir, args=args):
-    filename=f"chkpt_{args.run_name}_Epoch{epoch}={best_acc:.4f}}.pt"
+    filename=f"chkpt_{args.run_name}_Epoch{epoch}={best_acc:.4f}.pt"
     state_dict = model.state_dict()
     save_dict = {"epoch": epoch, "best_acc": best_acc, "state_dict": state_dict}
     filename = os.path.join(dir_add, filename)
