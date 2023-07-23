@@ -9,7 +9,7 @@
         # salloc --time=0:10:00 --gpus-per-node=t4:2 --cpus-per-task=8 --mem=64G --account=def-training-wa --nodes 2
         # salloc --time=01:00:00 --gpus-per-node=t4:2 --cpus-per-task=6 --mem-per-cpu=8G --account=def-training-wa
         # salloc --time=1:00:00 --gpus-per-node=v100:1 --cpus-per-task=3 --mem=64G --ntasks=3 --account=def-training-wa
-        # salloc --time=01:00:00 --cpus-per-task=8 --mem-per-cpu=8G --account=def-training-wa
+        # salloc --time=03:00:00 --cpus-per-task=12 --mem-per-cpu=8G --account=def-training-wa
 
 ###############################################################
 ################### DIRECTORY PATHS ###########################
