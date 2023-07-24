@@ -82,9 +82,7 @@ def load_data(args, data_transforms):
     elif args.data_used == 'SSA':
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
 
-    # Split data files
-    train_files, val_files = split_data(data_folders, seed) 
-    logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
+    
     
     ###### We now get data transforms before calling load_data
         # Get data transforms
@@ -96,28 +94,36 @@ def load_data(args, data_transforms):
     #     'val': MRIDataset(args.data,val_files, transform=data_transforms['val']),
     #     # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     # }
-
-    image_datasets = {
-        'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
-        'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
-    }
-
+    if args.exec_mode == "training":
+        # Split data files
+        train_files, val_files = split_data(data_folders, seed) 
+        logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
+        image_datasets = {
+            'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
+            'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
+        }
     # Create dataloaders
     # can set num_workers for running sub-processes
-    dataloaders = {
-        'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
-        'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True)
-        # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
-    }
+    
+        dataloaders = {
+            'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
+            'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True)
+            # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
+        }
+        # Save data split
+        splitData = {
+            'subjsTr' : train_files,
+            'subjsVal' : val_files,
+            # 'subjsTest' : test_files    
+        }
+        with open(args.data + str(args.data_used) + ".json", "w") as file:
+            json.dump(splitData, file)
+    elif args.exec_mode == "predict":
+        val_files = [os.path.join(args.data, file) for file in os.listdir(args.data) if (file.startswith("BraTS-"))]
+        image_datasets = {'val': MRIDataset(args.data, val_files, transform=data_transforms['val'])}
+        dataloaders = {'val': data_utils.DataLoader(image_datasets['val'], batch_size=1, shuffle=False)}
 
-    # Save data split
-    splitData = {
-        'subjsTr' : train_files,
-        'subjsVal' : val_files,
-        # 'subjsTest' : test_files    
-    }
-    with open(args.data + str(args.data_used) + ".json", "w") as file:
-        json.dump(splitData, file)
+    
 
     return dataloaders
 

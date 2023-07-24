@@ -20,7 +20,8 @@ class MRIDataset(Dataset):
             self.transform = transform
             self.SSAtransform = SSAtransform
             self.imgs = []                                              # store images to load (paths)
-            self.lbls = []                                              # store corresponding labels (paths)
+            self.lbls = []   
+            self.mode = None                                           # store corresponding labels (paths)
             for img_folder in self.data_folders:                        # run through each subjectID folder
                 folder_path = os.path.join(data_dir, img_folder)                                                            
                 self.SSA = True if 'SSA' in img_folder else False       # check if current file is from SSA dataset
@@ -40,34 +41,42 @@ class MRIDataset(Dataset):
         name = os.path.dirname(self.imgs[idx])
         # Load files
         image = np.load(self.imgs[idx])
-        mask = np.load(self.lbls[idx])
+        image = torch.from_numpy(image) # 4, 240, 240, 155
+        if self.mode is not None:
+            mask = np.load(self.lbls[idx])
+            mask = torch.from_numpy(mask) # 240, 240, 155
 
         # print(self.imgs[idx] )
         # print("========================")
         # print(self.lbls[idx] )
-        # print("========================")   
-             
-        # Convert to tensor
-        image = torch.from_numpy(image) # 4, 240, 240, 155
-        mask = torch.from_numpy(mask) # 240, 240, 155
+        # print("========================")           
 
         if self.transform is not None: # Apply general transformations
         # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
-            subject = tio.Subject(
-                image=tio.ScalarImage(tensor=image),
-                mask=tio.LabelMap(tensor=mask),
-                name=name
-                )
-            tranformed_subject = self.transform(subject)
-            # Apply transformation to GLI data to reduce quality (creating fake SSA data)
-            if self.SSA == False and self.SSAtransform is not None:
-                tranformed_subject = self.SSAtransform(tranformed_subject)
+            if self.mode is not None:
+                subject = tio.Subject(
+                    image=tio.ScalarImage(tensor=image),
+                    mask=tio.LabelMap(tensor=mask),
+                    name=name
+                    )
+                tranformed_subject = self.transform(subject)
+                # Apply transformation to GLI data to reduce quality (creating fake SSA data)
+                if self.SSA == False and self.SSAtransform is not None:
+                    tranformed_subject = self.SSAtransform(tranformed_subject)
             
-            print("Tranformed_subject: ", tranformed_subject.name)
-            image = tranformed_subject["image"].data
-            mask = tranformed_subject["mask"].data
-
-        return image, mask, self.imgs[idx]
+                print("Tranformed_subject: ", tranformed_subject)
+                image = tranformed_subject["image"].data
+                mask = tranformed_subject["mask"].data
+                return image, mask, self.imgs[idx]
+            else:
+                subject = tio.Subject(
+                    image=tio.ScalarImage(tensor=image),
+                    name=name
+                    )
+                tranformed_subject = self.transform(subject)           
+                print("Tranformed_subject: ", tranformed_subject)
+                image = tranformed_subject["image"].data
+                return image, self.imgs[idx]
     
     def get_paths(self):
         return self.img_pth, self.seg_pth

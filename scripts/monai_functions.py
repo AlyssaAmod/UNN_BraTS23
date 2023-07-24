@@ -51,8 +51,24 @@ import modelZoo_monai as mZoo
 """
 
 logger = logging.getLogger(__name__)
-args = dl.get_main_args()
+# args = dl.get_main_args()
+#---------------------------------
+import argparse
 
+class Args(argparse.Namespace):
+    # data="/scratch/guest187/Data/val_SSA"
+    data = "/scratch/guest187/Data/val_SSA"
+    preproc_set="val"
+    data_used="SSA"
+    results='/scratch/guest187/Data/val_SSA/results'
+    optimiser="adam"
+    criterion="dice"
+    seed=42
+    batch_size=4
+    val_batch_size=2
+
+args=Args()
+#----------------------------
 set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -79,12 +95,17 @@ Define model architecture:
 def define_model(checkpoint=None):
     logger = logging.getLogger(__name__)
     model=mZoo.unet()
+    # model=mZoo.dynUnet()
     model.to(device)
     n_channels = len(model.channels)
+    # n_channels = len(model.filters)
     logger.info(f"Number of channels: {n_channels}")
 
     if checkpoint != None:
-        model.load_state_dict(torch.load(checkpoint))
+        ckpt = torch.load(checkpoint)
+        model.load_state_dict(ckpt)
+        # sdict = dict(ckpt["state_dict"])
+        # model.load_state_dict(sdict, strict=False)
 
     return model, n_channels
 
@@ -121,7 +142,7 @@ def model_params(args, model):
     if args.criterion == "ce":
         criterion = nn.CrossEntropyLoss()
         logger.info("Cross Entropy Loss set")
-    elif args.criterion == "dice":
+    elif args.optimiser == "dice":
         criterion = DiceFocalLoss(squared_pred=True, to_onehot_y=False, sigmoid=True)
         logger.info("Focal-Dice Loss set")
     else:
