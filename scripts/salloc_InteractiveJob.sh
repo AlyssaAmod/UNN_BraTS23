@@ -54,9 +54,9 @@ srun $VIRTUAL_ENV/bin/notebook.sh
                 http://gra1154.graham.sharcnet:8888/lab?token=e717e3ccab3c0664a46be3bd29fdfb047e9a6e9417bfac96
 
         # For windows  ssh -L 8888:<hostname:port> <username>@<cluster>.computecanada.ca
-        ssh -L 8888:gra1154.graham.sharcnet:8888 guest187@graham.computecanada.ca
+        ssh -L 8888:gra1162.graham.sharcnet:8888 guest187@graham.computecanada.ca
                 # on chrome/firefox type: http://localhost:8888/?token=<token>
-                http://localhost:8888/?token=e717e3ccab3c0664a46be3bd29fdfb047e9a6e9417bfac96
+                http://localhost:8888/?token=b60f351f238d9abd066e5877b7fdb84096a45a50f22b69ea
 
                 # OR this one which works better with jupyter lab
                 http://127.0.0.1:8888/lab?token=1b3f59a629180f81f366eb98d0f0c3659f12a9b02d4b2b1
