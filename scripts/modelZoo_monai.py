@@ -9,8 +9,8 @@ def unet():
         spatial_dims=3,
         in_channels=4,
         out_channels=4,
-        # channels=(16, 32, 64, 128, 256),
-        channels=(32, 64, 128, 256, 320, 320), #nnunet channels, deoth 6
+        channels=(16, 32, 64, 128, 256),
+        # channels=(32, 64, 128, 256, 320, 320), #nnunet channels, deoth 6
         # channels=(64, 96, 128, 192, 256, 384, 512), # optinet, depth 7
         strides=(2, 2, 2, 2, 2, 2,), # length should = len(channels) - 1
         kernel_size=3,
@@ -23,7 +23,7 @@ def dynUnet():
     DynUnet= nets.DynUNet(
         spatial_dims=3,
         in_channels=5,
-        out_channels=4,
+        out_channels=3,
         kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
         strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
         upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],

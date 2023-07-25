@@ -9,7 +9,7 @@ def define_transforms(n_channels):
     # Initialise data transforms
     data_transforms = {
         'train': tio.Compose([
-            tio.CropOrPad((192, 192, 124)),
+            tio.CropOrPad((192, 224, 160)),
             tio.OneOf([
                 tio.Compose([
                     tio.RandomFlip(axes=0, p=0.3),
@@ -43,7 +43,7 @@ def define_transforms(n_channels):
             ])
         }, p=0.8), # randomly apply ONE of these given transforms with prob 0.5 
         'val': tio.Compose([
-            tio.CropOrPad((192, 192, 124)),
+            tio.CropOrPad((192, 224, 160)),
             tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
         'test' : tio.Compose([

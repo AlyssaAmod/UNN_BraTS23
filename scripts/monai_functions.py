@@ -54,21 +54,26 @@ logger = logging.getLogger(__name__)
 # args = dl.get_main_args()
 #---------------------------------
 import argparse
-
+import os 
 class Args(argparse.Namespace):
-    data="/scratch/guest187/Data/val_SSA/results/12_3d/test"
-    # data = "/scratch/guest187/Data/val_SSA/monai"
+    # data="/scratch/guest187/Data/val_SSA/monai"
+    # data = "/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/monai/"
+    data="C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\monai\\"
     preproc_set="val"
     data_used="SSA"
-    results='/scratch/guest187/Data/val_SSA/results/optinet_finetuned'
+    # results='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/results/'
+    # results='/scratch/guest187/Data/val_SSA/results/monai_test/'
+    results='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\results\\monai_test\\'
     optimiser="adam"
     criterion="dice"
     exec_mode="predict"
     seed=42
     batch_size=4
     val_batch_size=2
-    model="dynUnet" #model="unet"
-
+    # ckpt_path='/scratch/guest187/Data/train_all/results/test_fullRunThrough/best_metric_model_fullTest.pth'
+    # ckpt_path='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/best_metric_model_fullTest.pth'
+    ckpt_path='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\Results\\train_all_monai\\test_fullRunThrough\\best_metric_model_fullTest.pth'
+    model="unet"
 args=Args()
 #----------------------------
 set_determinism(args.seed)
@@ -97,7 +102,7 @@ Define model architecture:
 def define_model(checkpoint=None):
     logger = logging.getLogger(__name__)
     model_mapping = {
-    'unet': mZoo.unet(),  # replace mZoo.unet with the actual function
+    'unet': mZoo.unet(),  
     'dynUnet': mZoo.dynUnet()  # replace mZoo.another_function with the actual function
     }
     model_name = args.model
@@ -112,10 +117,10 @@ def define_model(checkpoint=None):
     logger.info(f"Number of channels: {n_channels}")
 
     if checkpoint != None:
-        ckpt = torch.load(checkpoint)
+        ckpt = torch.load(checkpoint, map_location=device)
         if args.model=='unet':
             model.load_state_dict(ckpt)
-        elif args.model=='dynUnet':
+        if args.model=='dynUnet':
             sdict = dict(ckpt["state_dict"])
             model.load_state_dict(sdict, strict=False)
         else:
