@@ -56,16 +56,18 @@ logger = logging.getLogger(__name__)
 import argparse
 
 class Args(argparse.Namespace):
-    # data="/scratch/guest187/Data/val_SSA"
-    data = "/scratch/guest187/Data/val_SSA"
+    data="/scratch/guest187/Data/val_SSA/results/12_3d/test"
+    # data = "/scratch/guest187/Data/val_SSA/monai"
     preproc_set="val"
     data_used="SSA"
-    results='/scratch/guest187/Data/val_SSA/results'
+    results='/scratch/guest187/Data/val_SSA/results/optinet_finetuned'
     optimiser="adam"
     criterion="dice"
+    exec_mode="predict"
     seed=42
     batch_size=4
     val_batch_size=2
+    model="dynUnet" #model="unet"
 
 args=Args()
 #----------------------------
@@ -94,18 +96,30 @@ Define model architecture:
 """
 def define_model(checkpoint=None):
     logger = logging.getLogger(__name__)
-    model=mZoo.unet()
-    # model=mZoo.dynUnet()
+    model_mapping = {
+    'unet': mZoo.unet(),  # replace mZoo.unet with the actual function
+    'dynUnet': mZoo.dynUnet()  # replace mZoo.another_function with the actual function
+    }
+    model_name = args.model
+    model=model_mapping.get(model_name)
     model.to(device)
-    n_channels = len(model.channels)
-    # n_channels = len(model.filters)
+    if args.model == "unet":
+        n_channels = len(model.channels)
+    elif args.model == "dynUnet":
+        n_channels = len(model.filters)
+    else:
+        n_channels = 6
     logger.info(f"Number of channels: {n_channels}")
 
     if checkpoint != None:
         ckpt = torch.load(checkpoint)
-        model.load_state_dict(ckpt)
-        # sdict = dict(ckpt["state_dict"])
-        # model.load_state_dict(sdict, strict=False)
+        if args.model=='unet':
+            model.load_state_dict(ckpt)
+        elif args.model=='dynUnet':
+            sdict = dict(ckpt["state_dict"])
+            model.load_state_dict(sdict, strict=False)
+        else:
+            logger.info("No checkpoint found, starting from scratch")
 
     return model, n_channels
 
