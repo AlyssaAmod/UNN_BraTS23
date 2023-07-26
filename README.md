@@ -6,7 +6,7 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
 
-3. training script?
+3. training script: The training and validation data from the data_loader are passed to the trainer, respectively. 
 
 ## Project Structure
 ------------
@@ -71,15 +71,26 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 ## Folder & File Structure Requirements
 Refer to Challenge page on Synapse for submission requirements
+The segmentation files need to adhere to the following rules:
+- Be NIfTI and use .nii.gz extension
+- Dimensions should be 240 X 240 X 155 and origin at [0, -239, 0]
+- Use CaPTk to verify
+- Filenames should end with 5 digits case ID, followed by a dash, and 3-digit timepoint. (eg. *{ID}-{timepoint}.nii.gz
+
+Segmentations should be contained in a zip or tarball archive and upload this to Synapse
+To submit click: File Tools > Submit File to Challenge
+There are 5 queues and as a team we are limited to 2 submissions per day
+
+
 
 ### Training & Validation Data
 Total file: Training data
 - BraTS glioma dataset = 1251
-- BraTS SSA dataset = 43
+- BraTS SSA dataset = 60
 
 All data files are labelled as follows in the new data release:
-- BraTS-GLI-#####-00#
-- BraTS-SSA-#####-00#
+- BraTS-GLI-#####-000-#.nii.gz
+- BraTS-SSA-#####-000-#.nii.gz
 
 To run the code on your local machine, or via Compute Canada, folder structure should be set up as follows:
 
