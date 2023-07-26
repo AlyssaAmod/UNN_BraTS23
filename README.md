@@ -6,7 +6,9 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
 
-3. training script: The training and validation data from the data_loader are passed to the trainer, respectively. 
+3. training script: The training and validation data from the data_loader are passed to the trainer, respectively.
+
+4. Inference: the trained model is used to make predictions (i.e segmentating the brain tumor). 
 
 ## Project Structure
 ------------
