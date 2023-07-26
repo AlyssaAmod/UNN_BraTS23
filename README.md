@@ -146,9 +146,12 @@ segmentation masks generated: TBD
     - finally approved by experienced board-certified attending neuro-radiologists with more than 5 years experience in interpreting glioma brain MRI
         
     - **sub-regions** -- these are image-based and do not reflect strict biologic entities
-        - enhancing tumor (ET)
-        - non-enhancing tumor core (NETC)
-        - surrounding non-enhancing flair hyperintensity (SNFH)
+        - enhancing tumor (ET) = tumor segments exhibiting a discernible rise in T1 signal on post-contrast images compared to pre- 
+          contrast images
+        - non-enhancing tumor core (NETC) = This classification comprises all segments of the tumor core (the area typically removed by 
+          a surgeon) that show no enhancement.
+        - surrounding non-enhancing flair hyperintensity (SNFH) = This refers to the complete extent of FLAIR signal abnormality 
+          surrounding the tumor, which excludes any regions that are part of the tumor core. 
 
         Therefore, the sub-regions need to be converted back to the original classes:
         - NCR = necrotic tumor core
