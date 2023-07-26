@@ -106,8 +106,10 @@ data preparation outputs:
         - subjxxx-lbl.npy : initial pre-processed seg file == MUST MATCH stk.npy transformations AT ALL TIMES
 
 data augmentation outputs: currently nothing is saved
-    - BRaTS23 GLI TRAIN DATA - some augmented to mimic poor quality data from SSA
-    - BraTS23 SSA TRAIN DATA - ??? augmentations applied ??? TBD
+    - BRaTS23 GLI TRAIN DATA - some augmented to mimic poor quality data from SSA (RandomFlip, RandomAffine)
+    - BraTS23 GLI (fake SSA) - to make fake SSA data, RandomAnisotropy, Randomblur, RandomNoise, RandomMotion, RandomBiasField, and 
+      RandomGhosting was applied to GLI data. 
+    - BraTS23 SSA TRAIN DATA - Currently no augmentation done
     - BraTS23 GLI VALIDATION DATA - should be changed to BraTS fake SSA data to be used as a validation set
     - 
 
@@ -145,6 +147,13 @@ segmentation masks generated: TBD
         - enhancing tumor (ET)
         - non-enhancing tumor core (NETC)
         - surrounding non-enhancing flair hyperintensity (SNFH)
+
+        Therefore, the sub-regions need to be converted back to the original classes:
+        - NCR = necrotic tumor core
+        - ED = peritumoral edematous tissue
+        - ET = enhancing tumor
+
+        
         
 ### Important information
 #### Training & Val
