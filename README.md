@@ -9,7 +9,7 @@
 ## U-Net Architecture (image)
 
 
-## Our model Architecture 
+## Our model Architecture (image)
 
     
 MICCAI 2023 Brain Tumour Segmentation Challenge
