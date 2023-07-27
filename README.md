@@ -1,4 +1,17 @@
     # UNN_BraTS23
+## Brain Tumor segmentation introduction
+
+
+
+## Different types of brain tumors
+
+
+## U-Net Architecture (image)
+
+
+## Our model Architecture 
+
+    
 MICCAI 2023 Brain Tumour Segmentation Challenge
 ## Running these scripts
 
