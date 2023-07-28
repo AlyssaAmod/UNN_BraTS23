@@ -1,4 +1,17 @@
     # UNN_BraTS23
+## Brain Tumor segmentation introduction
+
+
+
+## Different types of brain tumors
+
+
+## U-Net Architecture (image)
+
+
+## Our model Architecture (image)
+
+    
 MICCAI 2023 Brain Tumour Segmentation Challenge
 ## Running these scripts
 
@@ -6,7 +19,9 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
 
-3. training script?
+3. training script: The training and validation data from the data_loader are passed to the trainer, respectively.
+
+4. Inference: the trained model is used to make predictions (i.e segmentating the brain tumor). 
 
 ## Project Structure
 ------------
@@ -71,15 +86,26 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 
 ## Folder & File Structure Requirements
 Refer to Challenge page on Synapse for submission requirements
+The segmentation files need to adhere to the following rules:
+- Be NIfTI and use .nii.gz extension
+- Dimensions should be 240 X 240 X 155 and origin at [0, -239, 0]
+- Use CaPTk to verify
+- Filenames should end with 5 digits case ID, followed by a dash, and 3-digit timepoint. (eg. *{ID}-{timepoint}.nii.gz
+
+Segmentations should be contained in a zip or tarball archive and upload this to Synapse
+To submit click: File Tools > Submit File to Challenge
+There are 5 queues and as a team we are limited to 2 submissions per day
+
+
 
 ### Training & Validation Data
 Total file: Training data
 - BraTS glioma dataset = 1251
-- BraTS SSA dataset = 43
+- BraTS SSA dataset = 60
 
 All data files are labelled as follows in the new data release:
-- BraTS-GLI-#####-00#
-- BraTS-SSA-#####-00#
+- BraTS-GLI-#####-000-#.nii.gz
+- BraTS-SSA-#####-000-#.nii.gz
 
 To run the code on your local machine, or via Compute Canada, folder structure should be set up as follows:
 
@@ -95,8 +121,10 @@ data preparation outputs:
         - subjxxx-lbl.npy : initial pre-processed seg file == MUST MATCH stk.npy transformations AT ALL TIMES
 
 data augmentation outputs: currently nothing is saved
-    - BRaTS23 GLI TRAIN DATA - some augmented to mimic poor quality data from SSA
-    - BraTS23 SSA TRAIN DATA - ??? augmentations applied ??? TBD
+    - BRaTS23 GLI TRAIN DATA - some augmented to mimic poor quality data from SSA (RandomFlip, RandomAffine)
+    - BraTS23 GLI (fake SSA) - to make fake SSA data, RandomAnisotropy, Randomblur, RandomNoise, RandomMotion, RandomBiasField, and 
+      RandomGhosting was applied to GLI data. 
+    - BraTS23 SSA TRAIN DATA - Currently no augmentation done
     - BraTS23 GLI VALIDATION DATA - should be changed to BraTS fake SSA data to be used as a validation set
     - 
 
@@ -131,9 +159,19 @@ segmentation masks generated: TBD
     - finally approved by experienced board-certified attending neuro-radiologists with more than 5 years experience in interpreting glioma brain MRI
         
     - **sub-regions** -- these are image-based and do not reflect strict biologic entities
-        - enhancing tumor (ET)
-        - non-enhancing tumor core (NETC)
-        - surrounding non-enhancing flair hyperintensity (SNFH)
+        - enhancing tumor (ET) = tumor segments exhibiting a discernible rise in T1 signal on post-contrast images compared to pre- 
+          contrast images
+        - non-enhancing tumor core (NETC) = This classification comprises all segments of the tumor core (the area typically removed by 
+          a surgeon) that show no enhancement.
+        - surrounding non-enhancing flair hyperintensity (SNFH) = This refers to the complete extent of FLAIR signal abnormality 
+          surrounding the tumor, which excludes any regions that are part of the tumor core. 
+
+        Therefore, the sub-regions need to be converted back to the original classes:
+        - NCR = necrotic tumor core
+        - ED = peritumoral edematous tissue
+        - ET = enhancing tumor
+
+        
         
 ### Important information
 #### Training & Val
