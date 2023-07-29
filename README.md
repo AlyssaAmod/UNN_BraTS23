@@ -1,4 +1,4 @@
-    # UNN_BraTS23
+# MICCAI 2023 Brain Tumour Segmentation Challenge: Team UNN *(Umuntu Ngumuntu Ngabantu)*
 ## Brain Tumor segmentation introduction
 
 
@@ -12,9 +12,22 @@
 ## Our model Architecture (image)
 
     
-MICCAI 2023 Brain Tumour Segmentation Challenge
-## Running these scripts
 
+## Running these scripts
+### Comput Canada
+**Compute Canada ~bashrc aliases for quick access:**
+
+`
+scr="cd /scratch/guest187"
+data="cd /scratch/guest187/Data"
+results="cd /scratch/guest187/Results"
+home="cd /home/guest187"
+oN="cd /home/guest187/BraTS23_SSA/train/OptiUnet_run"
+mon="cd /home/guest187/BraTS23_SSA/train/MON_UNet"
+gh="cd /home/guest187/GitRepo_Brats23/UNN_BraTS23"
+ghON="cd /home/guest187/GitRepo_Brats23/nnUnet"
+`
+### Main Scripts
 1. data_prep : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
 
 2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
@@ -85,19 +98,6 @@ MICCAI 2023 Brain Tumour Segmentation Challenge
 ------------
 
 ## Folder & File Structure Requirements
-Refer to Challenge page on Synapse for submission requirements
-The segmentation files need to adhere to the following rules:
-- Be NIfTI and use .nii.gz extension
-- Dimensions should be 240 X 240 X 155 and origin at [0, -239, 0]
-- Use CaPTk to verify
-- Filenames should end with 5 digits case ID, followed by a dash, and 3-digit timepoint. (eg. *{ID}-{timepoint}.nii.gz
-
-Segmentations should be contained in a zip or tarball archive and upload this to Synapse
-To submit click: File Tools > Submit File to Challenge
-There are 5 queues and as a team we are limited to 2 submissions per day
-
-
-
 ### Training & Validation Data
 Total file: Training data
 - BraTS glioma dataset = 1251
@@ -106,12 +106,6 @@ Total file: Training data
 All data files are labelled as follows in the new data release:
 - BraTS-GLI-#####-000-#.nii.gz
 - BraTS-SSA-#####-000-#.nii.gz
-
-To run the code on your local machine, or via Compute Canada, folder structure should be set up as follows:
-
-- source data provided: xxx/data/train/Nifty (TBC)
-- source data provided: xxx/data/val/Nifty (TBC)
-- Mapping file: xxx/data/BraTS2023_2017_GLI_Mapping.xlsx
 
 data preparation outputs: 
     - data/train/subj/
@@ -128,7 +122,17 @@ data augmentation outputs: currently nothing is saved
     - BraTS23 GLI VALIDATION DATA - should be changed to BraTS fake SSA data to be used as a validation set
     - 
 
-segmentation masks generated: TBD
+### Submission: Validation
+Refer to Challenge page on Synapse for submission requirements
+The segmentation files need to adhere to the following rules:
+- Be NIfTI and use .nii.gz extension
+- Dimensions should be 240 X 240 X 155 and origin at [0, -239, 0]
+- Use CaPTk to verify
+- Filenames should end with 5 digits case ID, followed by a dash, and 3-digit timepoint. (eg. *{ID}-{timepoint}.nii.gz
+
+Segmentations should be contained in a zip or tarball archive and upload this to Synapse
+To submit click: File Tools > Submit File to Challenge
+There are 5 queues and as a team we are limited to 2 submissions per day
 
 ## Challenge Overview
 ### Data

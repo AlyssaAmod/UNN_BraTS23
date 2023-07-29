@@ -183,3 +183,14 @@ Working:
 
 srun python3 /home/guest187/BrainHackProject/nnUNet/main.py --data $data_dirTr --results $results_dirTr --ckpt_store_dir $ckpt_store --brats --depth 6 --filters 64 96 128 192 256 384 512 --scheduler --learning_rate 0.0005 --epochs 50 --fold 1 --amp --gpus 3 --task 11 --save_ckpt --nfolds 10 --nodes 2
 df = pd.read_csv(f,sep=';',header=None, names=['PARTITION','AVAIL','TIMELIMIT','NODE','STATE','NODELIST'])
+
+# NB: to run optinet we must have older versions of packages as some functions are deprecated
+git+https://github.com/NVIDIA/dllogger
+git+https://github.com/NVIDIA/mlperf-common.git
+nibabel==3.2.1
+joblib==1.0.1
+pytorch-lightning==1.7.7
+scikit-learn==1.0
+scikit-image==0.18.3
+scipy==1.8.1
+rich==12.5.0
