@@ -9,6 +9,7 @@ def define_transforms(n_channels):
     # Initialise data transforms
     data_transforms = {
         'train': tio.Compose([
+            tio.CropOrPad(target_shape=128, mask_name='mask',labels=[1,2,3]),
             tio.OneOf([
                 tio.Compose([
                     tio.RandomFlip(axes=0, p=0.3),
@@ -16,6 +17,7 @@ def define_transforms(n_channels):
                     tio.RandomFlip(axes=2, p=0.3)]),
                 tio.RandomAffine(degrees=15,p=0.3)
             ], p=0.8),
+            
             tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
         'fakeSSA': {

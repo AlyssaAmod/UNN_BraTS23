@@ -89,7 +89,7 @@ def get_main_args(strings=None):
 
     # Naming conventions & saving
     arg("--modal", type=list, default=["t1c", "t1n", "t2w", "t2f"], help="List of modality abbreviations")
-    arg("--data_used", type=str, default="all", choices=["all", "GLI", "SSA"], help="The set or subset of data that is used for training")
+    arg("--data_used", type=str, default="all", choices=["ALL", "GLI", "SSA"], help="The set or subset of data that is used for training")
     arg("--data_grp", type=str, default="ATr", help="Dataset used",
         choices={"ATr": "BraTS23_train",
                   "AV": "BraTS23_val",
@@ -110,6 +110,7 @@ def get_main_args(strings=None):
     arg("--target_shape", type=bool, default=False, help="Target shape for cropOrPad")
     arg("--ohe", action="store_true", help="Add one-hot-encoding for foreground voxels (voxels > 0)")
 
+    arg("--augs", type=str, default=None, help="Fake SSA data transforms to apply: use resample or augment")
 
     # # Cluster allocations
     arg("--n_jobs", type=int, default=-1, help="Number of parallel jobs for data preprocessing")                        # <---------- CHANGE default

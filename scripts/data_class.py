@@ -64,7 +64,7 @@ class MRIDataset(Dataset):
                 if self.SSA == False and self.SSAtransform is not None:
                     tranformed_subject = self.SSAtransform(tranformed_subject)
             
-                print("Tranformed_subject: ", tranformed_subject)
+                print("Tranformed_subject: ", tranformed_subject["name"])
                 image = tranformed_subject["image"].data
                 mask = tranformed_subject["mask"].data
                 return image, mask, self.imgs[idx]
@@ -74,7 +74,7 @@ class MRIDataset(Dataset):
                     name=name
                     )
                 tranformed_subject = self.transform(subject)           
-                print("Tranformed_subject: ", tranformed_subject)
+                print("Tranformed_subject: ", tranformed_subject["name"])
                 image = tranformed_subject["image"].data
                 return image, self.imgs[idx]
     

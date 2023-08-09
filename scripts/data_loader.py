@@ -78,12 +78,10 @@ def load_data(args, data_transforms):
 
     # Locate data based on which dataset is being used
     # fakeSSA transforms are applied to GLI data to worse their image quality
-    if args.data_used == 'all':
+    if args.data_used == 'ALL':
         data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
-        fakeSSA = data_transforms['fakeSSA']                        
     elif args.data_used == "GLI":
         data_folders = [folder for folder in os.listdir(args.data) if 'GLI' in folder]
-        fakeSSA = data_transforms['fakeSSA']
     elif args.data_used == 'SSA':
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
    
@@ -101,7 +99,8 @@ def load_data(args, data_transforms):
         # Split data files
         train_files, val_files = split_data(data_folders, seed) 
         logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
-
+        if args.data_used != "SSA" and args.augs is not None:
+            fakeSSA = data_transforms['fakeSSA'][str(args.augs)]
         image_datasets = {
             'train': MRIDataset(args.data, train_files, transform=data_transforms['train'], SSAtransform=fakeSSA),
             'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
