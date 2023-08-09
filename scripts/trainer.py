@@ -1,6 +1,9 @@
 from monai_functions import *
-from utils.utils import get_main_args
+from utils.utils import get_main_args, set_cuda_devices, set_granularity
+from pytorch_lightning.strategies import DDPStrategy
 
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
 """
 General Setup: 
     logging, utils.args, seed, cuda, root dir
@@ -16,7 +19,11 @@ logging.basicConfig(
 args = get_main_args()
 
 set_determinism(args.seed)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+set_granularity()
+
+set_cuda_devices(args)
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 #----------------------- SETUP -----------------------
 

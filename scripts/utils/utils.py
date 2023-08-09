@@ -3,7 +3,7 @@ import os
 import pickle
 from subprocess import run
 from joblib import Parallel, delayed
-
+import ctypes
 import numpy as np
 import torch
 
@@ -14,6 +14,16 @@ def set_cuda_devices(args):
     device_list = ",".join([str(i) for i in range(args.gpus)])
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", device_list)
 
+def set_granularity():
+    cuda_path = os.getenv('CUDA_PATH')
+    libcudart_path = os.path.join(cuda_path, 'lib64', 'libcudart.so')
+    _libcudart = ctypes.CDLL(libcudart_path)
+    # _libcudart = ctypes.CDLL("libcudart.so")
+    pValue = ctypes.cast((ctypes.c_int * 1)(), ctypes.POINTER(ctypes.c_int))
+    _libcudart.cudaDeviceSetLimit(ctypes.c_int(0x05), ctypes.c_int(128))
+    _libcudart.cudaDeviceGetLimit(pValue, ctypes.c_int(0x05))
+    assert pValue.contents.value == 128
+    
 def run_parallel(func, args):
     return Parallel(n_jobs=-1)(delayed(func)(arg) for arg in args)
 
@@ -93,14 +103,12 @@ def get_main_args(strings=None):
         })
 
     arg("--config", type=str, default=None, help="Config file with arguments")          # <--- Do we need a configs file for training?
-    arg("--logname", type=str, default="logs.json", help="Name of dlloger output")
     arg("--save_preds", action="store_true", help="Enable prediction saving")
     arg("--save_ckpt", action="store_true", help="Enable saving checkpoint")
 
     # For preprocessing stacked nifty files
     arg("--target_shape", type=bool, default=False, help="Target shape for cropOrPad")
     arg("--ohe", action="store_true", help="Add one-hot-encoding for foreground voxels (voxels > 0)")
-    arg("--verbose", action="store_true")
 
 
     # # Cluster allocations
@@ -116,16 +124,13 @@ def get_main_args(strings=None):
     
     arg("--epochs", type=non_negative_int, default=1000, help="Number of training epochs.")
     arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
-    arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size")
-    arg("--depth", type=non_negative_int, default=5, help="The depth of the encoder")                                       # <---------- CHANGE default
-    arg("--batch_size", type=positive_int, default=4, help="Batch size")                                                    # <---------- CHANGE default
-    arg("--optimiser", type=str, default="adam", choices=["sgd", "adam"], help="Optimiser")
-    arg("--criterion", type=str, default="ce", choices=["ce", "dice"], help="Loss")
+    arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size") # <---------- CHANGE default
+    arg("--batch_size", type=positive_int, default=2, help="Batch size") # <---------- CHANGE default
+    arg("--optimiser", type=str, default="adam", choices=["adam", "novo"], help="Optimiser")
+    arg("--criterion", type=str, default="dice", choices=["ce", "dice", "brats"], help="Loss")
 
     arg("--val_batch_size", type=positive_int, default=2, help="Validation batch size")                                     # <---------- CHANGE default
-    # arg("--patience", type=positive_int, default=100, help="Early stopping patience")                                       # <---------- CHANGE default
-    # arg("--dim", type=int, default=3, help="UNet dimension")                                                                # <---------- CHANGE default
-    
+
     # # Other training params ************ TO CHECK IF NEEDED ******************
     arg("--gradient_clip_val", type=float, default=0, help="Gradient clipping norm value")
     arg("--negative_slope", type=float, default=0.01, help="Negative slope for LeakyReLU")
@@ -140,27 +145,14 @@ def get_main_args(strings=None):
     arg("--min_fmap", type=non_negative_int, default=4, help="Minimal dimension of feature map in the bottleneck")
     arg("--deep_supr_num", type=non_negative_int, default=2, help="Number of deep supervision heads")
     # added
-    arg("--brats", action="store_true", help="Enable BraTS specific training and inference")
-    arg("--brats22_model", action="store_true", help="Use BraTS22 model")
-    arg("--dim", type=int, choices=[2, 3], default=3, help="UNet dimension")
-    arg("--filters", nargs="+", help="[Optional] Set U-Net filters", default=None, type=int)
-    arg("--res_block", action="store_true", help="Enable residual blocks")
     arg("--layout", type=str, default="NCDHW")
-    arg("--focal", action="store_true", help="Use focal loss instead of cross entropy")
-    arg("--benchmark", action="store_true", help="Run model benchmarking")
+
     arg(
         "--norm",
         type=str,
         choices=["instance", "instance_nvfuser", "batch", "group"],
         default="instance",
         help="Normalization layer",
-    )
-    arg(
-        "--data2d_dim",
-        choices=[2, 3],
-        type=int,
-        default=3,
-        help="Input data dimension for 2d model",
     )
     arg(
         "--oversampling",
@@ -175,35 +167,11 @@ def get_main_args(strings=None):
         help="Amount of overlap between scans during sliding window inference",
     )
     arg(
-        "--scheduler",
-        action="store_true",
-        help="Enable cosine rate scheduler with warmup",
-    )
-    arg(
-        "--optimizer",
-        type=str,
-        default="adam",
-        choices=["sgd", "adam"],
-        help="Optimizer",
-    )
-    arg(
         "--blend",
         type=str,
         choices=["gaussian", "constant"],
         default="constant",
         help="How to blend output of overlapping windows",
-    )
-    arg(
-        "--train_batches",
-        type=non_negative_int,
-        default=0,
-        help="Limit number of batches for training (used for benchmarking mode only)",
-    )
-    arg(
-        "--test_batches",
-        type=non_negative_int,
-        default=0,
-        help="Limit number of batches for inference (used for benchmarking mode only)",
     )
 
     if strings is not None:

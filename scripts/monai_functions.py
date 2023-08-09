@@ -9,6 +9,8 @@ import logging
 
 # Import github scripts
 import data_loader as dl
+import utils.modelZoo_monai as mZoo
+from optinet.loss import LossBraTS
 
 # import torch libraries
 import torch
@@ -20,30 +22,20 @@ from torch.cuda.amp import GradScaler, autocast
 import monai
 from monai.config import print_config
 from monai.data import ArrayDataset, decollate_batch, DataLoader
-from monai.handlers import (
-    CheckpointLoader,
-    IgniteMetric,
-    MeanDice,
-    StatsHandler,
-    TensorBoardImageHandler,
-    TensorBoardStatsHandler,
-)
+
 from monai.metrics import DiceMetric, LossMetric, HausdorffDistanceMetric
 from monai.losses import DiceFocalLoss
 
-import monai.networks.nets as monNets
-from monai.networks.nets import UNet
 from monai.transforms import (
     Activations,
     AsDiscrete,
     Compose
 )
 from monai.inferers import sliding_window_inference
-from monai.utils import first
 from monai.utils.misc import set_determinism
 
 # Other imports (unsure)
-import modelZoo_monai as mZoo
+
 # ---------------------------------------------------
 
 """General Setup: 
@@ -51,30 +43,30 @@ import modelZoo_monai as mZoo
 """
 
 logger = logging.getLogger(__name__)
-# args = dl.get_main_args()
+args = dl.get_main_args()
 #---------------------------------
-import argparse
-import os 
-class Args(argparse.Namespace):
-    # data="/scratch/guest187/Data/val_SSA/monai"
-    # data = "/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/monai/"
-    data="C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\monai\\"
-    preproc_set="val"
-    data_used="SSA"
-    # results='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/results/'
-    # results='/scratch/guest187/Data/val_SSA/results/monai_test/'
-    results='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\results\\monai_test\\'
-    optimiser="adam"
-    criterion="dice"
-    exec_mode="predict"
-    seed=42
-    batch_size=4
-    val_batch_size=2
-    # ckpt_path='/scratch/guest187/Data/train_all/results/test_fullRunThrough/best_metric_model_fullTest.pth'
-    # ckpt_path='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/best_metric_model_fullTest.pth'
-    ckpt_path='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\Results\\train_all_monai\\test_fullRunThrough\\best_metric_model_fullTest.pth'
-    model="unet"
-args=Args()
+# import argparse
+# import os 
+# class Args(argparse.Namespace):
+#     # data="/scratch/guest187/Data/val_SSA/monai"
+#     # data = "/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/monai/"
+#     data="C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\monai\\"
+#     preproc_set="val"
+#     data_used="SSA"
+#     # results='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/val_SSA/results/'
+#     # results='/scratch/guest187/Data/val_SSA/results/monai_test/'
+#     results='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\val_SSA\\results\\monai_test\\'
+#     optimiser="adam"
+#     criterion="dice"
+#     exec_mode="predict"
+#     seed=42
+#     batch_size=4
+#     val_batch_size=2
+#     # ckpt_path='/scratch/guest187/Data/train_all/results/test_fullRunThrough/best_metric_model_fullTest.pth'
+#     # ckpt_path='/Users/alexandrasmith/Desktop/Workspace/Projects/UNN_BraTS23/data/best_metric_model_fullTest.pth'
+#     ckpt_path='C:\\Users\\amoda\\Documents\\SPARK\\BraTS2023\\CC\\Backup_2407\\Results\\train_all_monai\\test_fullRunThrough\\best_metric_model_fullTest.pth'
+#     model="unet"
+# args=Args()
 #----------------------------
 set_determinism(args.seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -102,19 +94,20 @@ Define model architecture:
 def define_model(checkpoint=None):
     logger = logging.getLogger(__name__)
     model_mapping = {
-    'unet': mZoo.unet(),  
-    'dynUnet': mZoo.dynUnet()  # replace mZoo.another_function with the actual function
-    }
+        'unet': mZoo.unet(),
+        'dynUnet': mZoo.dynUnet(),
+        'optinet': mZoo.OptiNet()# replace mZoo.another_function with the actual function
+        }
     model_name = args.model
     model=model_mapping.get(model_name)
     model.to(device)
     if args.model == "unet":
-        n_channels = len(model.channels)
-    elif args.model == "dynUnet":
-        n_channels = len(model.filters)
+        n_layers = len(model.channels)
+    elif args.model == "dynUnet" or args.model == 'optinet':
+        n_layers = len(model.filters)
     else:
-        n_channels = 6
-    logger.info(f"Number of channels: {n_channels}")
+        n_layers = 6
+    logger.info(f"Number of channels: {n_layers}")
 
     if checkpoint != None:
         ckpt = torch.load(checkpoint, map_location=device)
@@ -126,7 +119,7 @@ def define_model(checkpoint=None):
         else:
             logger.info("No checkpoint found, starting from scratch")
 
-    return model, n_channels
+    return model, n_layers
 
 # ---------------------------------------------------
 # SET UP TRAINING
@@ -135,8 +128,8 @@ def define_model(checkpoint=None):
 """
 Setup transforms, dataset
 """
-def define_dataloaders(n_channels):
-    data_transform = dl.define_transforms(n_channels)       # Define transforms
+def define_dataloaders(n_layers):
+    data_transform = dl.define_transforms(n_layers)       # Define transforms
     dataloaders = dl.load_data(args, data_transform)        # Load data; also saves json splitData
     # train_loader, val_loader = dataloaders['train'], dataloaders['val']
     return dataloaders
@@ -158,7 +151,10 @@ def model_params(args, model):
         logger.info("Error, no optimiser provided")
 
     # Define loss function
-    if args.criterion == "ce":
+    if args.criterion == 'brats':
+        criterion == LossBraTS()
+        logger.info("BraTS Loss set")
+    elif args.criterion == "ce":
         criterion = nn.CrossEntropyLoss()
         logger.info("Cross Entropy Loss set")
     elif args.optimiser == "dice":

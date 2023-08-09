@@ -21,10 +21,10 @@ class MRIDataset(Dataset):
             self.SSAtransform = SSAtransform
             self.imgs = []                                              # store images to load (paths)
             self.lbls = []   
-            self.mode = None                                           # store corresponding labels (paths)
+            self.mode = None                                            # store corresponding labels (paths)
             for img_folder in self.data_folders:                        # run through each subjectID folder
                 folder_path = os.path.join(data_dir, img_folder)                                                            
-                self.SSA = True if 'SSA' in img_folder else False       # check if current file is from SSA dataset
+                self.SSA = True if 'SSA' in img_folder else False       # check if current file is from SSA dataset       
                 for file in os.listdir(folder_path):                    # check folder contents
                     if os.path.isfile(os.path.join(folder_path, file)):
                         if file.endswith("-lbl.npy"):
