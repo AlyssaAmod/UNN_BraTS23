@@ -33,6 +33,8 @@ python $git/monai_trainer.py --seed 42 --data $data_dir --results $results_dir -
 
 #------------------ USING JUPYTER ----------------
 salloc --time=03:00:00 --cpus-per-task=12 --mem-per-cpu=8G --account=def-training-wa --gpus-per-node=t4:1
+
+salloc --time=03:00:00 --cpus-per-task=6 --mem-per-cpu=8G --account=def-training-wa --gpus-per-node=v100:1 --constraint=cascade,v100
 module load python/3.9
 source /home/guest187/hackathon/bin/activate
 
