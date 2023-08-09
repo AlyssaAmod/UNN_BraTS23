@@ -74,21 +74,22 @@ def load_data(args, data_transforms):
         seed=None
         logger.info("No seed has been set")
     
+    fakeSSA = None
+
     # Locate data based on which dataset is being used
-    if args.data_used == 'all':
+    # fakeSSA transforms are applied to GLI data to worse their image quality
+    if args.data_used == 'ALL':
         data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
     elif args.data_used == "GLI":
         data_folders = [folder for folder in os.listdir(args.data) if 'GLI' in folder]
     elif args.data_used == 'SSA':
         data_folders = [folder for folder in os.listdir(args.data) if 'SSA' in folder]
-
-    
-    
+   
     ###### We now get data transforms before calling load_data
         # Get data transforms
         # data_transforms = define_transforms(n_channels)
 
-    # fakeSSA transforms are applied to GLI data to worse their image quality
+    
     # image_datasets = {
     #     'train': MRIDataset(args.data,train_files, transform=data_transforms['train'], SSAtransform=data_transforms['fakeSSA']),
     #     'val': MRIDataset(args.data,val_files, transform=data_transforms['val']),
@@ -98,16 +99,17 @@ def load_data(args, data_transforms):
         # Split data files
         train_files, val_files = split_data(data_folders, seed) 
         logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
+        if args.data_used != "SSA" and args.augs is not None:
+            fakeSSA = data_transforms['fakeSSA'][str(args.augs)]
         image_datasets = {
-            'train': MRIDataset(args.data, train_files, transform=data_transforms['train']),
+            'train': MRIDataset(args.data, train_files, transform=data_transforms['train'], SSAtransform=fakeSSA),
             'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
         }
-    # Create dataloaders
-    # can set num_workers for running sub-processes
-    
+        # Create dataloaders
+        # can set num_workers for running sub-processes    
         dataloaders = {
             'train': data_utils.DataLoader(image_datasets['train'], batch_size=args.batch_size, shuffle=True, drop_last=True),
-            'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.val_batch_size, shuffle=True)
+            'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.batch_size, shuffle=True)
             # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
         }
         # Save data split
@@ -118,12 +120,11 @@ def load_data(args, data_transforms):
         }
         with open(args.data + str(args.data_used) + ".json", "w") as file:
             json.dump(splitData, file)
+
     elif args.exec_mode == "predict":
         val_files = [os.path.join(args.data, file) for file in os.listdir(args.data) if (file.startswith("BraTS-"))]
         image_datasets = {'val': MRIDataset(args.data, val_files, transform=data_transforms['val'])}
         dataloaders = {'val': data_utils.DataLoader(image_datasets['val'], batch_size=1, shuffle=False)}
-
-    
 
     return dataloaders
 

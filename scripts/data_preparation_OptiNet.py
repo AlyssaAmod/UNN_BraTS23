@@ -40,7 +40,6 @@ import torch
 
 import torchio as tio
 
-import utils.utils
 from utils.utils import get_main_args
 from data_transforms import transforms_preproc
 from data_transforms import define_transforms
@@ -168,7 +167,7 @@ def load_and_transform_images(inputs):
     image_path = pair["image"]
     if mode == "training":
         label_path = pair["label"]
-        transL = ['checkRAS','ohe','ZnormFore']
+        transL = ['checkRAS','CropOrPad','ohe','ZnormFore']
         subject = tio.Subject(
             image=tio.ScalarImage(os.path.join(data_path, image_path)),
             label=tio.LabelMap(os.path.join(data_path, label_path))

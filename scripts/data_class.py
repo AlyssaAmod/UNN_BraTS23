@@ -21,10 +21,10 @@ class MRIDataset(Dataset):
             self.SSAtransform = SSAtransform
             self.imgs = []                                              # store images to load (paths)
             self.lbls = []   
-            self.mode = None                                           # store corresponding labels (paths)
+            self.mode = None                                            # store corresponding labels (paths)
             for img_folder in self.data_folders:                        # run through each subjectID folder
                 folder_path = os.path.join(data_dir, img_folder)                                                            
-                self.SSA = True if 'SSA' in img_folder else False       # check if current file is from SSA dataset
+                self.SSA = True if 'SSA' in img_folder else False       # check if current file is from SSA dataset       
                 for file in os.listdir(folder_path):                    # check folder contents
                     if os.path.isfile(os.path.join(folder_path, file)):
                         if file.endswith("-lbl.npy"):
@@ -64,7 +64,7 @@ class MRIDataset(Dataset):
                 if self.SSA == False and self.SSAtransform is not None:
                     tranformed_subject = self.SSAtransform(tranformed_subject)
             
-                print("Tranformed_subject: ", tranformed_subject)
+                print("Tranformed_subject: ", tranformed_subject["name"])
                 image = tranformed_subject["image"].data
                 mask = tranformed_subject["mask"].data
                 return image, mask, self.imgs[idx]
@@ -74,7 +74,7 @@ class MRIDataset(Dataset):
                     name=name
                     )
                 tranformed_subject = self.transform(subject)           
-                print("Tranformed_subject: ", tranformed_subject)
+                print("Tranformed_subject: ", tranformed_subject["name"])
                 image = tranformed_subject["image"].data
                 return image, self.imgs[idx]
     
