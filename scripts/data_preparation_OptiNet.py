@@ -91,7 +91,7 @@ def prepare_nifty(d):
 
 
 def prepare_dirs(data, train):
-    img_path, lbl_path = os.path.join(data, "images"), os.path.join(data, "labels")
+    img_path, lbl_path = os.path.join(data, "images_UNN"), os.path.join(data, "labels_UNN")
     call(f"mkdir {img_path}", shell=True)
     if train:
         call(f"mkdir {lbl_path}", shell=True)
@@ -108,7 +108,7 @@ def prepare_dirs(data, train):
 
 
 def prepare_dataset_json(data, train):
-    images, labels = glob(os.path.join(data, "images", "*")), glob(os.path.join(data, "labels", "*"))
+    images, labels = glob(os.path.join(data, "images_UNN", "*")), glob(os.path.join(data, "labels_UNN", "*"))
     images = sorted([img.replace(data + "/", "") for img in images])
     labels = sorted([lbl.replace(data + "/", "") for lbl in labels])
 
@@ -161,8 +161,8 @@ def load_and_transform_images(inputs):
     logger.info("Image-Label pairs are: ", pair)
     logger.info("Mode is: ", pair)
 
-    # mode = "training"
-    mode = "test"
+    mode = "training"
+    # mode = "test"
 
     image_path = pair["image"]
     if mode == "training":
@@ -239,18 +239,18 @@ def main():
 
     args = get_main_args()
       
-    # logging.info("Generating stacked nifti files.")
-    # startT = time.time()
-    # logging.info("Loaded all nifti files and saved image data")
+    logging.info("Generating stacked nifti files.")
+    startT = time.time()
+    logging.info("Loaded all nifti files and saved image data")
     
-    # if args.preproc_set == "test":
-    #     prepare_dataset(args.data, False)
-    # else:
-    #     prepare_dataset(args.data, True)
+    if args.preproc_set == "test":
+        prepare_dataset(args.data, False)
+    else:
+        prepare_dataset(args.data, True)
 
-    # print("Finished!")
-    # endT = time.time()
-    # logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
+    print("Finished!")
+    endT = time.time()
+    logging.info(f"Image - label pairs created. Total time taken: {(endT - startT):.2f}")
 
     startT2 = time.time()
     logging.info("Beginning Preprocessing.")

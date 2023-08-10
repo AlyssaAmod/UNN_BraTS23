@@ -78,6 +78,8 @@ def load_data(args, data_transforms):
 
     # Locate data based on which dataset is being used
     # fakeSSA transforms are applied to GLI data to worse their image quality
+    logger.info(f"Data used is {args.data_used}.")
+
     if args.data_used == 'ALL':
         data_folders = glob.glob(os.path.join(args.data, "BraTS*"))
     elif args.data_used == "GLI":
@@ -95,12 +97,15 @@ def load_data(args, data_transforms):
     #     'val': MRIDataset(args.data,val_files, transform=data_transforms['val']),
     #     # 'test': MRIDataset(args, test_files, transform=data_transforms['test'])
     # }
-    if args.exec_mode == "training":
+    if args.exec_mode == "train":
         # Split data files
         train_files, val_files = split_data(data_folders, seed) 
         logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
         if args.data_used != "SSA" and args.augs is not None:
             fakeSSA = data_transforms['fakeSSA'][str(args.augs)]
+
+        logger.info(f"Fake SSA transforms call is {fakeSSA}.")
+
         image_datasets = {
             'train': MRIDataset(args.data, train_files, transform=data_transforms['train'], SSAtransform=fakeSSA),
             'val': MRIDataset(args.data, val_files, transform=data_transforms['val']),
@@ -112,6 +117,7 @@ def load_data(args, data_transforms):
             'val': data_utils.DataLoader(image_datasets['val'], batch_size=args.batch_size, shuffle=True)
             # 'test': data_utils.DataLoader(image_datasets['test'], batch_size=args.val_batch_size, shuffle=True)
         }
+
         # Save data split
         splitData = {
             'subjsTr' : train_files,
@@ -124,6 +130,7 @@ def load_data(args, data_transforms):
     elif args.exec_mode == "predict":
         val_files = [os.path.join(args.data, file) for file in os.listdir(args.data) if (file.startswith("BraTS-"))]
         image_datasets = {'val': MRIDataset(args.data, val_files, transform=data_transforms['val'])}
+        
         dataloaders = {'val': data_utils.DataLoader(image_datasets['val'], batch_size=1, shuffle=False)}
 
     return dataloaders
@@ -143,7 +150,7 @@ def split_data(data_folders, seed):
 
     #-----------------------------
     # training loop split is train-val (70-30)
-    train_files, val_files = train_test_split(data_folders, test_size=0.7, random_state=seed)
+    train_files, val_files = train_test_split(data_folders, test_size=0.3, random_state=seed)
 
     # ??? validation/testing???
 

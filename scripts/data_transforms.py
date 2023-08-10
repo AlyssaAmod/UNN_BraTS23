@@ -2,14 +2,18 @@ from torchvision import transforms
 import torchio as tio
 import torch
 import warnings
+import logging
 
 
 #! TO DO: we must fill in the transforms we want to apply
 def define_transforms(n_channels):
+    logger = logging.getLogger(__name__)
+    logger.info(f"Defining transforms with n chanells == {n_channels}.")
+
     # Initialise data transforms
     data_transforms = {
         'train': tio.Compose([
-            tio.CropOrPad(target_shape=128, mask_name='mask',labels=[1,2,3]),
+            tio.CropOrPad(target_shape=128, mask_name='labels',labels=[1,2,3], padding_mode='edge'),
             tio.OneOf([
                 tio.Compose([
                     tio.RandomFlip(axes=0, p=0.3),
@@ -17,7 +21,6 @@ def define_transforms(n_channels):
                     tio.RandomFlip(axes=2, p=0.3)]),
                 tio.RandomAffine(degrees=15,p=0.3)
             ], p=0.8),
-            
             tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
         'fakeSSA': {

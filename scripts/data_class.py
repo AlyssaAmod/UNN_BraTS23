@@ -56,7 +56,7 @@ class MRIDataset(Dataset):
             if self.mode is not None:
                 subject = tio.Subject(
                     image=tio.ScalarImage(tensor=image),
-                    mask=tio.LabelMap(tensor=mask),
+                    label=tio.LabelMap(tensor=mask),
                     name=name
                     )
                 tranformed_subject = self.transform(subject)
@@ -66,7 +66,7 @@ class MRIDataset(Dataset):
             
                 print("Tranformed_subject: ", tranformed_subject["name"])
                 image = tranformed_subject["image"].data
-                mask = tranformed_subject["mask"].data
+                mask = tranformed_subject["label"].data
                 return image, mask, self.imgs[idx]
             else:
                 subject = tio.Subject(

@@ -152,12 +152,12 @@ def model_params(args, model):
 
     # Define loss function
     if args.criterion == 'brats':
-        criterion == LossBraTS()
+        criterion = LossBraTS
         logger.info("BraTS Loss set")
     elif args.criterion == "ce":
         criterion = nn.CrossEntropyLoss()
         logger.info("Cross Entropy Loss set")
-    elif args.optimiser == "dice":
+    elif args.criterion == "dice":
         criterion = DiceFocalLoss(squared_pred=True, to_onehot_y=False, sigmoid=True)
         logger.info("Focal-Dice Loss set")
     else:

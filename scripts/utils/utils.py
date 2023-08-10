@@ -119,6 +119,8 @@ def get_main_args(strings=None):
     arg("--num_workers", type=non_negative_int, default=8, help="Number of subprocesses to use for data loading")
 
     # # Training parameters ************** TO COMPLETE NEXT WEEK***************
+    arg("--model", type=str, help="Model selection name; see model zoo")
+
     arg("--nfolds", type=positive_int, default=5, help="Number of cross-validation folds")
     arg("--fold", type=non_negative_int, default=0, help="Fold number")
     arg("--seed", type=non_negative_int, default=None, help="Random seed")
