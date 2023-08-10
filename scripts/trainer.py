@@ -22,7 +22,7 @@ set_determinism(args.seed)
 set_granularity()
 
 set_cuda_devices(args)
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 #----------------------- SETUP -----------------------

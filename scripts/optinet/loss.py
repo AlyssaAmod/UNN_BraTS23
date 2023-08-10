@@ -31,10 +31,10 @@ class Loss(nn.Module):
 
 
 class LossBraTS(nn.Module):
-    def __init__(self):
+    def __init__(self, focal):
         super(LossBraTS, self).__init__()
         self.dice = DiceLoss(sigmoid=True, batch=True)
-        self.ce = FocalLoss(gamma=2.0, to_onehot_y=False)
+        self.ce = FocalLoss(gamma=2.0, to_onehot_y=False) if focal else nn.BCEWithLogitsLoss()
 
     def _loss(self, p, y):
         return self.dice(p, y) + self.ce(p, y.float())

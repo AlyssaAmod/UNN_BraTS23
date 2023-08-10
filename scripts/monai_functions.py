@@ -152,7 +152,8 @@ def model_params(args, model):
 
     # Define loss function
     if args.criterion == 'brats':
-        criterion = LossBraTS
+        loss = LossBraTS
+        criterion = loss(focal=True)
         logger.info("BraTS Loss set")
     elif args.criterion == "ce":
         criterion = nn.CrossEntropyLoss()
@@ -167,6 +168,13 @@ def model_params(args, model):
     
     return optimiser, criterion, lr_scheduler
 
+def compute_loss(preds, label, criterion):
+    loss = criterion(preds[0], label)
+    for i, pred in enumerate(preds[1:]):
+        downsampled_label = nn.functional.interpolate(label, pred.shape[2:])
+        loss += 0.5 ** (i + 1) * criterion(pred, downsampled_label)
+    c_norm = 1 / (2 - 2 ** (-len(preds)))
+    return c_norm * loss
 # ---------------------------------------------------
 # SET UP VALIDATION 
 # ---------------------------------------------------
@@ -245,8 +253,9 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
 
             with autocast(): # cast tensor to smaller memory footprint to avoid OOM
                 outputs = model(inputs)
-                logger.info(f"\n{outputs.shape}")
-                loss = criterion.forward(outputs, labels)
+                logger.info(f"\n{len(outputs)}")
+                loss = compute_loss(outputs, labels, criterion)
+                # loss = criterion.forward(outputs, labels)
 
             # Calculate Loss and Update optimiser using scalar
             scaler.scale(loss).backward()
@@ -276,7 +285,8 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                 
                 with torch.no_grad():
                     val_outputs = inference(VAL_AMP, model, val_inputs)
-                    val_loss = criterion.forward(val_outputs, val_labels)
+                    val_loss = compute_loss(val_outputs, val_labels, criterion)
+                    # val_loss = criterion.forward(val_outputs, val_labels)
                     
                     val_labels_list = decollate_batch(val_labels)
                     val_outputs_convert = [post_trans(i) for i in decollate_batch(val_outputs)]
@@ -292,8 +302,8 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
             metric_values.append(metric)
             last_epoch = [metric, epoch_loss2, val_epoch_loss, val_epoch_loss / (step + 1) ]
             metric_batch = dice_metric_batch.aggregate()
-            # logger.info(metric)
-            # logger.info(metric_batch)
+            logger.info(f"{metric}")
+            logger.info("{metric_batch}")
             metric_0 = metric_batch[0][0].item()
             metric_1 = metric_batch[0][1].item()
             metric_2 = metric_batch[0][2].item()

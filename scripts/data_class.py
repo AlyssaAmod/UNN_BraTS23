@@ -8,6 +8,7 @@ from monai.data import Dataset
 import torch.utils.data as data_utils
 import nibabel as nib
 import torchio as tio
+import logging
 
 class MRIDataset(Dataset):
     """
@@ -38,18 +39,22 @@ class MRIDataset(Dataset):
         return len(self.imgs)
     
     def __getitem__(self, idx):
+        logger = logging.getLogger(__name__)
+
         name = os.path.dirname(self.imgs[idx])
         # Load files
         image = np.load(self.imgs[idx])
         image = torch.from_numpy(image) # 4, 240, 240, 155
+        logger.info(f"image shape is {image.shape}")
         if self.mode is not None:
             mask = np.load(self.lbls[idx])
             mask = torch.from_numpy(mask) # 240, 240, 155
+            logger.info(f"mask file exists; mask shape is {mask.shape}")
 
-        # print(self.imgs[idx] )
-        # print("========================")
-        # print(self.lbls[idx] )
-        # print("========================")           
+        # logger.info(self.imgs[idx] )
+        # logger.info("========================")
+        # logger.info(self.lbls[idx] )
+        # logger.info("========================")           
 
         if self.transform is not None: # Apply general transformations
         # transforms such as crop, flip, rotate etc will be applied to both the image and the mask
@@ -59,22 +64,26 @@ class MRIDataset(Dataset):
                     label=tio.LabelMap(tensor=mask),
                     name=name
                     )
+                # Apply transformation to GLI data to reduce quality (creating fake SSA data)                    
                 tranformed_subject = self.transform(subject)
-                # Apply transformation to GLI data to reduce quality (creating fake SSA data)
                 if self.SSA == False and self.SSAtransform is not None:
                     tranformed_subject = self.SSAtransform(tranformed_subject)
-            
-                print("Tranformed_subject: ", tranformed_subject["name"])
+                logger.info(f"Tranformed_subject: {tranformed_subject['name']}")
+
                 image = tranformed_subject["image"].data
                 mask = tranformed_subject["label"].data
+                logger.info(f"Image shape is {image.shape}")
+                logger.info(f"Mask shape is {mask.shape}")
+
                 return image, mask, self.imgs[idx]
+            
             else:
                 subject = tio.Subject(
                     image=tio.ScalarImage(tensor=image),
                     name=name
                     )
                 tranformed_subject = self.transform(subject)           
-                print("Tranformed_subject: ", tranformed_subject["name"])
+                logger.info(f"Tranformed_subject: {tranformed_subject['name']}")
                 image = tranformed_subject["image"].data
                 return image, self.imgs[idx]
     
