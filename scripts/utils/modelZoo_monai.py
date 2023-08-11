@@ -37,26 +37,10 @@ def dynUnet():
     return DynUnet
 
 def OptiNet():
-    spacings = [1.0, 1.0, 1.0]
-    patch_size = [128, 128, 128]
-    strides, kernels, sizes = [], [], patch_size[:]
-    while True:
-        spacing_ratio = [spacing / min(spacings) for spacing in spacings]
-        stride = [
-            2 if ratio <= 2 and size >= 2 * 2 else 1 for (ratio, size) in zip(spacing_ratio, sizes)
-        ]
-        kernel = [3 if ratio <= 2 else 1 for ratio in spacing_ratio]
-        if all(s == 1 for s in stride):
-            break
-        sizes = [i / j for i, j in zip(sizes, stride)]
-        spacings = [i * j for i, j in zip(spacings, stride)]
-        kernels.append(kernel)
-        strides.append(stride)
-        if len(strides) == 6:
-            break
-    strides.insert(0, len(spacings) * [1])
-    kernels.append(len(spacings) * [3])
-    
+    kernels = [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]]
+    strides = [[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]]
+    print("Strides are:", strides)
+    print("Kernels are:", kernels)
     optinet = UNet3D(kernels, strides)
     
     return optinet

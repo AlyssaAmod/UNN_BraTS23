@@ -139,13 +139,13 @@ class UNet3D(nn.Module):
     ):
         super(UNet3D, self).__init__()
         self.dim = 3
-        self.n_class = 4
+        self.n_class = 3
         self.deep_supervision = True
         self.norm = "instancenorm3d"
         self.filters = [64, 128, 256, 512, 768, 1024, 2048][: len(strides)]
 
         down_block = ConvBlock
-        self.input_block = InputBlock(4, self.filters[0], norm=self.norm)
+        self.input_block = InputBlock(5, self.filters[0], norm=self.norm)
         self.downsamples = self.get_module_list(
             conv_block=down_block,
             in_channels=self.filters[:-1],
