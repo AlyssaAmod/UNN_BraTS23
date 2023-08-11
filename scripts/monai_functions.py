@@ -10,7 +10,7 @@ import logging
 # Import github scripts
 import data_loader as dl
 import utils.modelZoo_monai as mZoo
-from optinet.loss import LossBraTS
+from optinet.loss import LossBraTS_UNN
 
 # import torch libraries
 import torch
@@ -152,7 +152,7 @@ def model_params(args, model):
 
     # Define loss function
     if args.criterion == 'brats':
-        loss = LossBraTS
+        loss = LossBraTS_UNN
         criterion = loss(focal=True)
         logger.info("BraTS Loss set")
     elif args.criterion == "ce":
@@ -169,7 +169,7 @@ def model_params(args, model):
     return optimiser, criterion, lr_scheduler
 
 def compute_loss(preds, label, criterion):
-    loss = criterion(preds[0], label)
+    loss = criterion(preds, label)
     for i, pred in enumerate(preds[1:]):
         downsampled_label = nn.functional.interpolate(label, pred.shape[2:])
         loss += 0.5 ** (i + 1) * criterion(pred, downsampled_label)
@@ -196,7 +196,7 @@ def inference(VAL_AMP, model, input):
     def _compute(input):
         return sliding_window_inference(
             inputs=input,
-            roi_size=(240, 240, 155),
+            roi_size=(128,128,128),
             sw_batch_size=1,
             predictor=model,
             overlap=0.25,
@@ -236,7 +236,7 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
     scaler = GradScaler()
 
     total_start = time.time()
-
+    model = model.to(device)
     for epoch in range(args.epochs):
         epoch_start = time.time()
 

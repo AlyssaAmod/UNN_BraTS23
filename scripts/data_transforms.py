@@ -9,6 +9,8 @@ import logging
 def define_transforms(n_channels):
     logger = logging.getLogger(__name__)
     logger.info(f"Defining transforms with n chanells == {n_channels}.")
+    # alpha = 0.0004
+    # spn = (1-alpha)*data_img_num + alpha*shuffled_image
 
     # Initialise data transforms
     data_transforms = {
@@ -23,22 +25,19 @@ def define_transforms(n_channels):
             ], p=0.8),
             tio.EnsureShapeMultiple(2**n_channels, method='pad')
         ]),
-        'fakeSSA': {
-            'resample': tio.Compose([
-                    tio.RandomAnisotropy(axes=(1, 2), downsampling=(1.2), scalars_only=True),
-                    tio.RandomAnisotropy(axes=0, downsampling=(6), scalars_only=True)
-                ]),
-            'augment': tio.Compose([            
-                tio.OneOf({
-                    tio.RandomBlur(std=(0.5, 1.5)) : 0.3,
-                    tio.RandomNoise(mean=3, std=(0, 0.33)) : 0.7
-                },p=0.50),
-                tio.OneOf({
-                    tio.RandomMotion(num_transforms=3, image_interpolation='nearest') : 0.5,
-                    tio.RandomBiasField(coefficients=1) : 0.2,
-                    tio.RandomGhosting(intensity=1.5) : 0.3
-                }, p=0.50)
-            ])}, # randomly apply ONE of these given transforms with prob 0.5 
+        'fakeSSA': tio.Compose([
+            tio.Compose([
+                tio.RandomAnisotropy(axes=(1, 2), downsampling=(1.2), scalars_only=True),
+                tio.RandomAnisotropy(axes=0, downsampling=(6), scalars_only=True)], p=0.4),
+            tio.OneOf({
+                tio.RandomBlur(std=(0.5, 1.5)) : 0.3,
+                tio.RandomNoise(mean=3, std=(0, 0.33)) : 0.7
+            },p=0.50),
+            tio.OneOf({
+                tio.RandomMotion(num_transforms=3, image_interpolation='nearest') : 0.5,
+                tio.RandomBiasField(coefficients=1) : 0.2,
+                tio.RandomGhosting(intensity=1.5) : 0.3
+            }, p=0.50)]), # randomly apply ONE of these given transforms with prob 0.5 
         'val': 
             tio.EnsureShapeMultiple(2**n_channels, method='pad'),
         'test' : tio.Compose([

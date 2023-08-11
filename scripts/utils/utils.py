@@ -125,8 +125,8 @@ def get_main_args(strings=None):
     arg("--fold", type=non_negative_int, default=0, help="Fold number")
     arg("--seed", type=non_negative_int, default=None, help="Random seed")
     
-    arg("--epochs", type=non_negative_int, default=1000, help="Number of training epochs.")
-    arg("--learning_rate", type=float, default=0.0008, help="Learning rate")
+    arg("--epochs", type=non_negative_int, default=150, help="Number of training epochs.")
+    arg("--learning_rate", type=float, default=0.0003, help="Learning rate")
     arg("--nvol", type=positive_int, default=4, help="Number of volumes which come into single batch size") # <---------- CHANGE default
     arg("--batch_size", type=positive_int, default=2, help="Batch size") # <---------- CHANGE default
     arg("--optimiser", type=str, default="adam", choices=["adam", "novo"], help="Optimiser")

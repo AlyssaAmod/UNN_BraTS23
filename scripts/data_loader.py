@@ -101,9 +101,9 @@ def load_data(args, data_transforms):
         # Split data files
         train_files, val_files = split_data(data_folders, seed) 
         logger.info(f"Number of training files: {len(train_files)}\nNumber of validation files: {len(val_files)}")
-        if args.data_used != "SSA" and args.augs is not None:
-            fakeSSA = data_transforms['fakeSSA'][str(args.augs)]
-
+        # if args.data_used != "SSA" and args.augs is not None:
+        #     fakeSSA = data_transforms['fakeSSA'][str(args.augs)]
+        fakeSSA = data_transforms['fakeSSA']
         logger.info(f"Fake SSA transforms call is {fakeSSA}.")
 
         image_datasets = {
