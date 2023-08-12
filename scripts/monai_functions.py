@@ -254,8 +254,8 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
             with autocast(): # cast tensor to smaller memory footprint to avoid OOM
                 outputs = model(inputs)
                 logger.info(f"\n{len(outputs)}")
-                loss = compute_loss(outputs, labels, criterion)
-                # loss = criterion.forward(outputs, labels)
+                # loss = compute_loss(outputs, labels, criterion)
+                loss = criterion.forward(outputs, labels)
 
             # Calculate Loss and Update optimiser using scalar
             scaler.scale(loss).backward()
@@ -285,8 +285,8 @@ def train(args, model, device, train_loader, val_loader, optimiser, criterion, l
                 
                 with torch.no_grad():
                     val_outputs = inference(VAL_AMP, model, val_inputs)
-                    val_loss = compute_loss(val_outputs, val_labels, criterion)
-                    # val_loss = criterion.forward(val_outputs, val_labels)
+                    # val_loss = compute_loss(val_outputs, val_labels, criterion)
+                    val_loss = criterion.forward(val_outputs, val_labels)
                     
                     val_labels_list = decollate_batch(val_labels)
                     val_outputs_convert = [post_trans(i) for i in decollate_batch(val_outputs)]
