@@ -164,36 +164,6 @@ class TrainPipeline(GenericPipeline):
             img, lbl = self.make_dhwc_layout(img, lbl)
         return img, lbl
 
-
-class EvalPipeline(GenericPipeline):
-    def __init__(self, batch_size, num_threads, device_id, **kwargs):
-        super().__init__(batch_size, num_threads, device_id, **kwargs)
-        self.invert_resampled_y = kwargs["invert_resampled_y"]
-        if self.invert_resampled_y:
-            self.input_meta = self.get_reader(kwargs["meta"])
-            self.input_orig_y = self.get_reader(kwargs["orig_lbl"])
-
-    def define_graph(self):
-        img, lbl = self.load_data()
-        if self.invert_resampled_y:
-            meta = self.input_meta(name="ReaderM")
-            orig_lbl = self.input_orig_y(name="ReaderO")
-            return img, lbl, meta, orig_lbl
-        if self.layout == "NDHWC" and self.dim == 3:
-            img, lbl = self.make_dhwc_layout(img, lbl)
-        return img, lbl
-
-
-class TritonPipeline(GenericPipeline):
-    def __init__(self, batch_size, num_threads, device_id, **kwargs):
-        super().__init__(batch_size, num_threads, device_id, **kwargs)
-
-    def define_graph(self):
-        img, lbl = self.load_data()
-        img, lbl = self.crop_fn(img, lbl)
-        return img, lbl
-
-
 class TestPipeline(GenericPipeline):
     def __init__(self, batch_size, num_threads, device_id, **kwargs):
         super().__init__(batch_size, num_threads, device_id, **kwargs)
@@ -208,10 +178,7 @@ class TestPipeline(GenericPipeline):
 
 PIPELINES = {
     "train": TrainPipeline,
-    "eval": EvalPipeline,
     "test": TestPipeline,
-    "benchmark": BenchmarkPipeline,
-    "triton": TritonPipeline,
 }
 
 
@@ -229,24 +196,12 @@ def fetch_dali_loader(imgs, lbls, batch_size, mode, **kwargs):
     if lbls is not None:
         assert len(imgs) == len(lbls), f"Number of images ({len(imgs)}) not matching number of labels ({len(lbls)})"
 
-    if kwargs["benchmark"]:  # Just to make sure the number of examples is large enough for benchmark run.
-        batches = kwargs["test_batches"] if mode == "test" else kwargs["train_batches"]
-        examples = batches * batch_size * kwargs["gpus"]
-        imgs = list(itertools.chain(*(100 * [imgs])))[:examples]
-        lbls = list(itertools.chain(*(100 * [lbls])))[:examples]
-        mode = "benchmark"
-
     pipeline = PIPELINES[mode]
     shuffle = True if mode == "train" else False
     dynamic_shape = True if mode in ["eval", "test"] else False
     load_to_gpu = True if mode in ["eval", "test", "benchmark"] else False
     pipe_kwargs = {"imgs": imgs, "lbls": lbls, "load_to_gpu": load_to_gpu, "shuffle": shuffle, **kwargs}
     output_map = ["image", "meta"] if mode == "test" else ["image", "label"]
-
-    if kwargs["dim"] == 2 and mode in ["train", "benchmark"]:
-        batch_size_2d = batch_size // kwargs["nvol"] if mode == "train" else batch_size
-        batch_size = kwargs["nvol"] if mode == "train" else 1
-        pipe_kwargs.update({"patch_size": [batch_size_2d] + kwargs["patch_size"]})
 
     rank = int(os.getenv("LOCAL_RANK", "0"))
     if mode == "eval":  # We sharded the data for evaluation manually.

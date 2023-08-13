@@ -97,16 +97,8 @@ def main():
             )
 
     trainer = get_trainer(args, callbacks)
-    if args.benchmark:
-        if args.exec_mode == "train":
-            trainer.fit(model, train_dataloaders=data_module.train_dataloader())
-        else:
-            # warmup
-            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
-            # benchmark run
-            model.start_benchmark = 1
-            trainer.test(model, dataloaders=data_module.test_dataloader(), verbose=False)
-    elif args.exec_mode == "train":
+
+    if args.exec_mode == "train":
         trainer.fit(model, datamodule=data_module)
     elif args.exec_mode == "evaluate":
         trainer.validate(model, dataloaders=data_module.val_dataloader())

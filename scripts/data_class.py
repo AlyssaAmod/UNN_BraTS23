@@ -45,11 +45,11 @@ class MRIDataset(Dataset):
         # Load files
         image = np.load(self.imgs[idx])
         image = torch.from_numpy(image) # 4, 240, 240, 155
-        logger.info(f"image shape is {image.shape}")
+        # logger.info(f"image shape is {image.shape}")
         if self.mode is not None:
             mask = np.load(self.lbls[idx])
             mask = torch.from_numpy(mask) # 240, 240, 155
-            logger.info(f"mask file exists; mask shape is {mask.shape}")
+            # logger.info(f"mask file exists; mask shape is {mask.shape}")
 
         # logger.info(self.imgs[idx] )
         # logger.info("========================")
@@ -72,8 +72,8 @@ class MRIDataset(Dataset):
 
                 image = tranformed_subject["image"].data
                 mask = tranformed_subject["label"].data
-                logger.info(f"Image shape is {image.shape}")
-                logger.info(f"Mask shape is {mask.shape}")
+                # logger.info(f"Image shape is {image.shape}")
+                # logger.info(f"Mask shape is {mask.shape}")
 
                 return image, mask, self.imgs[idx]
             

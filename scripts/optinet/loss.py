@@ -48,7 +48,7 @@ class LossBraTS(nn.Module):
 class LossBraTS_UNN(nn.Module):
     def __init__(self, focal):
         super(LossBraTS, self).__init__()
-        self.dice = DiceLoss(sigmoid=True, batch=True)
+        self.dice = DiceLoss(squared_pred=True, to_onehot_y=False, sigmoid=True, batch=True)
         self.ce = FocalLoss(gamma=2.0, to_onehot_y=False) if focal else nn.BCEWithLogitsLoss()
 
     def _loss(self, p, y):
