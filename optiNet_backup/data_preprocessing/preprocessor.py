@@ -42,11 +42,10 @@ class Preprocessor:
         self.metadata = json.load(open(metadata_path, "r"))
         self.modality = self.metadata["modality"]["0"]
         self.results = os.path.join(args.results, self.task_code)
-        self.ct_min, self.ct_max, self.ct_mean, self.ct_std = (0,) * 4
         if not self.training:
             self.results = os.path.join(self.results, self.args.exec_mode)
         self.crop_foreg = transforms.CropForegroundd(keys=["image", "label"], source_key="image")
-        nonzero = True if self.modality != "CT" else False  # normalize only non-zero region for MRI
+        nonzero = True   # normalize only non-zero region for MRI
         self.normalize_intensity = transforms.NormalizeIntensity(nonzero=nonzero, channel_wise=True)
         if self.args.exec_mode == "val":
             dataset_json = json.load(open(metadata_path, "r"))
@@ -63,21 +62,6 @@ class Preprocessor:
             self.collect_spacings()
         if self.verbose:
             print(f"Target spacing {self.target_spacing}")
-
-        if self.modality == "CT":
-            try:
-                self.ct_min = ct_min[self.task]
-                self.ct_max = ct_max[self.task]
-                self.ct_mean = ct_mean[self.task]
-                self.ct_std = ct_std[self.task]
-            except:
-                self.collect_intensities()
-
-            _mean = round(self.ct_mean, 2)
-            _std = round(self.ct_std, 2)
-            if self.verbose:
-                print(f"[CT] min: {self.ct_min}, max: {self.ct_max}, mean: {_mean}, std: {_std}")
-
         self.run_parallel(self.preprocess_pair, self.args.exec_mode)
 
         pickle.dump(
@@ -103,10 +87,8 @@ class Preprocessor:
             label = transforms.SpatialCrop(roi_start=bbox[0], roi_end=bbox[1])(label)
             self.save_npy(label, fname, "_orig_lbl.npy")
 
-        if self.args.dim == 3:
-            image, label = self.resample(image, label, image_spacings)
-        if self.modality == "CT":
-            image = np.clip(image, self.ct_min, self.ct_max)
+
+        image, label = self.resample(image, label, image_spacings)
         image = self.normalize(image)
         if self.training:
             image, label = self.standardize(image, label)
@@ -134,17 +116,9 @@ class Preprocessor:
             paddings = [(pad_sh - image_sh) / 2 for (pad_sh, image_sh) in zip(pad_shape, image_shape)]
             image = self.pad(image, paddings)
             label = self.pad(label, paddings)
-        if self.args.dim == 2:  # Center cropping 2D images.
-            _, _, height, weight = image.shape
-            start_h = (height - self.patch_size[0]) // 2
-            start_w = (weight - self.patch_size[1]) // 2
-            image = image[:, :, start_h : start_h + self.patch_size[0], start_w : start_w + self.patch_size[1]]
-            label = label[:, :, start_h : start_h + self.patch_size[0], start_w : start_w + self.patch_size[1]]
         return image, label
 
     def normalize(self, image):
-        if self.modality == "CT":
-            return (image - self.ct_mean) / self.ct_std
         return self.normalize_intensity(image)
 
     def save(self, image, label, fname, image_metadata):

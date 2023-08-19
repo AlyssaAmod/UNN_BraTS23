@@ -49,10 +49,7 @@ class NNUnet(pl.LightningModule):
             self.learning_rate = args.learning_rate
             loss = LossBraTS if self.args.brats else Loss
             self.loss = loss(self.args.focal)
-            if self.args.dim == 2:
-                self.tta_flips = [[2], [3], [2, 3]]
-            else:
-                self.tta_flips = [[2], [3], [4], [2, 3], [2, 4], [3, 4], [2, 3, 4]]
+            self.tta_flips = [[2], [3], [4], [2, 3], [2, 4], [3, 4], [2, 3, 4]]
             self.dice = Dice(self.n_class, self.args.brats)
             if self.args.exec_mode in ["train", "evaluate"] and not self.args.benchmark:
                 self.dllogger = DLLogger(args.results, args.logname)
@@ -62,8 +59,6 @@ class NNUnet(pl.LightningModule):
 
     def _forward(self, img):
         if self.args.benchmark:
-            if self.args.dim == 2 and self.args.data2d_dim == 3:
-                img = layout_2d(img, None)
             return self.model(img)
         return self.tta_inference(img) if self.args.tta else self.do_inference(img)
 
@@ -309,19 +304,7 @@ class NNUnet(pl.LightningModule):
 
     def get_train_data(self, batch):
         img, lbl = batch["image"], batch["label"]
-        if self.args.dim == 2 and self.args.data2d_dim == 3:
-            img, lbl = layout_2d(img, lbl)
         return img, lbl
-
-
-def layout_2d(img, lbl):
-    batch_size, depth, channels, height, width = img.shape
-    img = torch.reshape(img, (batch_size * depth, channels, height, width))
-    if lbl is not None:
-        lbl = torch.reshape(lbl, (batch_size * depth, 1, height, width))
-        return img, lbl
-    return img
-
 
 def flip(data, axis):
     return torch.flip(data, dims=axis)
