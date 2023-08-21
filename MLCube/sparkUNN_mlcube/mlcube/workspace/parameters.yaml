@@ -1,8 +1,6 @@
 # Arguments of the data_preparation.py script
 
 # Arguments of the preprocess.py script
-prep_data: $data_path
-prep_results: $data_path
 prep_exec_mode: test
 ohe: true
 verbose: true
@@ -12,11 +10,9 @@ n_jobs: -1
 
 # Arguments of the main.py script
 exec_mode: predict
-data: $data_path/12_3d
-results: $output_path #?
 config: None
 logname : logs.json
-gpus: 1
+gpus: 0
 nodes: 1
 learning_rate: 0.0003
 gradient_clip_val: 0

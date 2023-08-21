@@ -1,7 +1,7 @@
 """MLCube handler file"""
 import typer
 import yaml
-
+import os
 from infer import run_inference
 
 app = typer.Typer()
@@ -19,7 +19,13 @@ def infer(
     with open(parameters_file) as f:
         parameters = yaml.safe_load(f)
 
-    run_inference(data_path, parameters, output_path, ckpt_path)
+    parameters["prep_data"] = data_path
+    parameters["prep_results"] = data_path
+    parameters["data"] = os.path.join(data_path, "12_3d")
+    parameters["results"] = output_path
+    parameters['ckpt_path'] = ckpt_path
+
+    run_inference(data_path, parameters)
 
 
 @app.command("hotfix")

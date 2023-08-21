@@ -26,10 +26,8 @@ from pytorch_lightning.utilities import rank_zero_only
 def print0(text):
     print(text)
 
-
 def get_task_code(args):
     return f"{args['task']}_{args['dim']}d"
-
 
 def get_config_file(args):
     if args["data"] != "/data":

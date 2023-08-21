@@ -7,14 +7,11 @@ import os
 import torch
 import time
 
-def run_inference(data_path, parameters, output_path, ckpt_path):
+def run_inference(data_path, parameters):
 
     # Preparing dataset
     prepare_dataset(data_path, False) # Testing
     print("Finished prepping all gli data!")
-
-    parameters['ckpt_path'] = ckpt_path #?
-    parameters['results'] = output_path #?
 
     # Preprocessing dataset
     start = time.time()

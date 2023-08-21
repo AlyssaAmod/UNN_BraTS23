@@ -21,15 +21,15 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary, RichProgressBar
 from pytorch_lightning.plugins.io import AsyncCheckpointIO
 from pytorch_lightning.strategies import DDPStrategy
-from utils.args import get_main_args
 from utils.logger import LoggingCallback
-from utils.utils import make_empty_dir, set_cuda_devices, set_granularity, verify_ckpt_path
+from utils.utils import make_empty_dir, set_cuda_devices, verify_ckpt_path
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 
 
 def get_trainer(args, callbacks):
+    accelerator = "auto" # "gpu" if torch.cuda.is_available() else "cpu"
     return Trainer(
         logger=False,
         default_root_dir=args["results"],
@@ -41,8 +41,8 @@ def get_trainer(args, callbacks):
         enable_checkpointing=args["save_ckpt"],
         callbacks=callbacks,
         num_sanity_val_steps=0,
-        accelerator="gpu",
-        devices=args["gpus"],
+        accelerator=accelerator,
+        devices="auto", # args["gpus"]
         num_nodes=args["nodes"],
         plugins=[AsyncCheckpointIO()],
         strategy=DDPStrategy(
@@ -58,10 +58,9 @@ def get_trainer(args, callbacks):
 
 
 def main(args):
-    # args = get_main_args()
-    # set_granularity()
+
     set_cuda_devices(args)
-    if args["seed is not None"]:
+    if args["seed"] is not None:
         seed_everything(args["seed"])
     data_module = DataModule(args)
     data_module.setup()

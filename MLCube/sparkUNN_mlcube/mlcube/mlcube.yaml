@@ -13,6 +13,7 @@ docker:
   build_context: "../project"
   # Docker file name within docker build context, default is `Dockerfile`.
   build_file: "Dockerfile"
+  gpu_args: --gpus=all
 
 tasks:
   infer:

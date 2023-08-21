@@ -210,7 +210,6 @@ PIPELINES = {
     "train": TrainPipeline,
     "eval": EvalPipeline,
     "test": TestPipeline,
-    "benchmark": BenchmarkPipeline,
     "triton": TritonPipeline,
 }
 

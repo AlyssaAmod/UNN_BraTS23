@@ -25,7 +25,7 @@ from joblib import Parallel, delayed
 from skimage.transform import resize
 from utils.utils import get_task_code, make_empty_dir
 
-from data_preprocessing.configs import ct_max, ct_mean, ct_min, ct_std, patch_size, spacings, task
+from data_preprocessing.configs import patch_size, spacings, task
 
 
 class Preprocessor:
@@ -42,8 +42,8 @@ class Preprocessor:
         self.metadata = json.load(open(metadata_path, "r"))
         self.modality = self.metadata["modality"]["0"]
         self.results = os.path.join(args["prep_results"], self.task_code)
-        if not self.training:
-            self.results = os.path.join(self.results, self.args["prep_exec_mode"])
+        # if not self.training:
+        #     self.results = os.path.join(self.results, self.args["prep_exec_mode"])
         self.crop_foreg = transforms.CropForegroundd(keys=["image", "label"], source_key="image")
         nonzero = True   # normalize only non-zero region for MRI
         self.normalize_intensity = transforms.NormalizeIntensity(nonzero=nonzero, channel_wise=True)
