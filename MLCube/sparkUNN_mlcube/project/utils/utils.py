@@ -45,23 +45,8 @@ def set_cuda_devices(args):
 
 
 def verify_ckpt_path(args):
-    if args["resume_training"]:
-        if args["ckpt_path"] is not None:
-            resume_path_ckpt = args["ckpt_path"]
-        else:
-            resume_path_ckpt = os.path.join("checkpoints", "last.ckpt")
-        # resume_path_ckpt = os.path.join(
-        #     args["ckpt_path"] if args["ckpt_path"] is not None else "", "checkpoints", "last.ckpt"
-        # )
-        resume_path_results = os.path.join(args["results"], "checkpoints", "last.ckpt")
-        if os.path.exists(resume_path_ckpt):
-            return resume_path_ckpt
-        if os.path.exists(resume_path_results):
-            return resume_path_results
-        print("[Warning] Checkpoint not found. Starting training from scratch.")
-        return None
     if args["ckpt_path"] is None or not os.path.isfile(args["ckpt_path"]):
-        print(f"Provided checkpoint {args['ckpt_path']} is not a file. Starting training from scratch.")
+        print(f"ERROR: Provided checkpoint {args['ckpt_path']} is not a file.")
         return None
     return args["ckpt_path"]
 

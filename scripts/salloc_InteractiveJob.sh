@@ -1,5 +1,8 @@
 #!/bin/bash
 
+
+python mlcube.py infer --data_path=/scratch/guest187/Data/data_cube --output_path=/scratch/guest187/Results/results_mlcube_ftSSA --ckpts_path=/scratch/guest187/MLCubes/working/sparkUNN_mlcube/mlcube/workspace/additional_files/checkpoints --parameters_file=/scratch/guest187/MLCubes/working/sparkUNN_mlcube/mlcube/workspace/parameters.yaml
+
 ########## USE THE FOLLOWING COMMANDS TO CREATE AN INTERACTIVE SESSSION TO TEST CODE ######### 
 ###### salloc --account=def-training-wa --time=hh:mm:ss --cpus-per-task=[3-22] --mem-per-cpu=[8-12G] --gres=gpu:t4:[1-3] ###########
 ######          other options include: --nodes[1-3], --gpus-per-task=t4:[1-3] --ntasks=[2?]                              ###########
@@ -22,6 +25,7 @@
 salloc --time=02:00:00 --gpus-per-node=t4:1 --cpus-per-task=6 --mem-per-cpu=8G --account=def-training-wa
 
 module load python/3.9
+module load cuda/11.0
 source /home/guest187/hackathon/bin/activate
 
 data_dir=/scratch/guest187/Data/train_all/train_data
@@ -69,3 +73,80 @@ http://127.0.0.1:8888/lab?token=e717e3ccab3c0664a46be3bd29fdfb047e9a6e9417bfac96
 
 
 
+import nibabel as nib
+import numpy as np
+gli_pred188 = nib.load("/scratch/guest187/Results/results_mlcube_gli/run1/predictions/BraTS-SSA-00188-000.nii.gz")
+gli_pred169 = nib.load("/scratch/guest187/Results/results_mlcube_gli/run1/predictions/BraTS-SSA-00169-000.nii.gz")
+ft_pred188 = nib.load("/scratch/guest187/Results/results_mlcube_ftSSA/run1/predictions/BraTS-SSA-00188-000.nii.gz")
+ft_pred169 = nib.load("/scratch/guest187/Results/results_mlcube_ftSSA/run1/predictions/BraTS-SSA-00169-000.nii.gz")
+ft_val169 = nib.load("/scratch/guest187/Results/train_gli/preds/train_gli_ftSSA_valSSA/BraTS-SSA-00169-000.nii.gz")
+ft_val188 = nib.load("/scratch/guest187/Results/train_gli/preds/train_gli_ftSSA_valSSA/BraTS-SSA-00188-000.nii.gz")
+gli_val188 = nib.load("/scratch/guest187/Results/train_gli/preds/train_gli_valSSA/BraTS-SSA-00188-000.nii.gz")
+gli_val169 = nib.load("/scratch/guest187/Results/train_gli/preds/train_gli_valSSA/BraTS-SSA-00169-000.nii.gz")
+gli_pred188rep = nib.load("/scratch/guest187/Results/results_mlcube_gli/run2/predictions/BraTS-SSA-00188-000.nii.gz")
+glipred169rep = nib.load("/scratch/guest187/Results/results_mlcube_gli/run2/predictions/BraTS-SSA-00169-000.nii.gz")
+ft_pred188rep = nib.load("/scratch/guest187/Results/results_mlcube_gli/run2/predictions/BraTS-SSA-00188-000.nii.gz")
+ft_pred169rep = nib.load("/scratch/guest187/Results/results_mlcube_gli/run2/predictions/BraTS-SSA-00169-000.nii.gz")
+
+
+pred_list = [gli_pred188,gli_pred188rep,gli_val188,gli_pred169,gli_val169,glipred169rep]
+pred_list = [ft_pred188,ft_val188,ft_pred169,ft_val169,ft_pred188rep,ft_pred169rep]
+
+gli_pred188_np = np.array(gli_pred188.dataobj)
+gli_pred188rep_np = np.array(gli_pred188rep.dataobj)
+gli_val188_np = np.array(gli_val188.dataobj)
+gli_pred169_np = np.array(gli_pred169.dataobj)
+gli_val169_np = np.array(gli_val169.dataobj)
+gli_pred169rep_np = np.array(glipred169rep.dataobj)
+
+ft_pred188_np = np.array(ft_pred188.dataobj)
+ft_val188_np = np.array(ft_val188.dataobj)
+ft_pred169_np = np.array(ft_pred169.dataobj)
+ft_val169_np = np.array(ft_val169.dataobj)
+ft_pred169rep_np = np.array(ft_pred169rep.dataobj)
+ft_pred188rep_np = np.array(ft_pred188rep.dataobj)
+
+predXval_ft188 = np.sum(ft_pred188_np != ft_val188_np)
+pred2Xval_ft188 =np.sum(ft_pred188rep_np != ft_val188_np)
+predXpred2_ft188 = np.sum(ft_pred188_np != ft_pred188rep_np)
+
+predXval_ft169 = np.sum(ft_pred169_np != ft_val169_np)
+pred2Xval_ft169 = np.sum(ft_pred169rep_np != ft_val169_np)
+predXpred2_ft169 = np.sum(ft_pred169_np != ft_pred169rep_np)
+
+predXval_gli188 = np.sum(gli_pred188_np != gli_val188_np)
+pred2Xval_gli188 = np.sum(gli_pred188rep_np != gli_val188_np)
+predXpred2_gli188 = np.sum(gli_pred188_np != gli_pred188rep_np)
+
+predXval_gli169 = np.sum(gli_pred169_np != gli_val169_np)
+pred2Xval_gli169 = np.sum(gli_pred169rep_np != gli_val169_np)
+predXpred2_gli169 = np.sum(gli_pred169_np != gli_pred169rep_np)
+
+pred_ftXgli188 = np.sum(ft_pred188_np != gli_pred188_np)
+val_ftXgli188 = np.sum(ft_val188_np != gli_val188_np)
+pred2_ftXgli188 = np.sum(ft_pred169rep_np != gli_pred188rep_np)
+
+pred_ftXgli188 = np.sum(ft_pred169_np != gli_pred169_np)
+val_ftXgli188 = np.sum(ft_val169_np != gli_val169_np)
+pred2_ftXgli188 = np.sum(ft_pred169rep_np != gli_pred169rep_np)
+
+
+
+print("predXval_ft188 = ", predXval_ft188," pred2Xval_ft188 = ", pred2Xval_ft188,"predXpred2_ft188 = ",predXpred2_ft188)
+print("predXval_ft169 = ",predXval_ft169 ," pred2Xval_ft169 = ", pred2Xval_ft169,"predXpred2_ft169 = ", predXpred2_ft169)
+print("predXval_gli188 = ",predXval_gli188,"pred2Xval_gli188 = ", pred2Xval_gli188, "predXpred2_gli188 = ", predXpred2_gli188)
+print("predXval_gli169 = ",predXval_gli169,"pred2Xval_gli169 = ", pred2Xval_gli169, "predXpred2_gli169 = ", predXpred2_gli169)
+print("pred_ftXgli188 = ",pred_ftXgli188,"val_ftXgli188 = ", val_ftXgli188, "pred2_ftXgli188 = ", pred2_ftXgli188)
+print("pred_ftXgli188 = ",pred_ftXgli188,"val_ftXgli188 = ", val_ftXgli188, "pred2_ftXgli188 = ", pred2_ftXgli188)
+
+
+
+predXval_ft188 =  5802819  pred2Xval_ft188 =  5807258 predXpred2_ft188 =  6106
+
+predXval_ft169 =  5880537  pred2Xval_ft169 =  5888878 predXpred2_ft169 =  15279
+
+predXval_gli188 =  5802041 pred2Xval_gli188 =  5802041 predXpred2_gli188 =  0
+
+predXval_gli169 =  5874636 pred2Xval_gli169 =  5874636 predXpred2_gli169 =  1
+
+pred_ftXgli188 =  15280 val_ftXgli188 =  15280 pred2_ftXgli188 =  0
