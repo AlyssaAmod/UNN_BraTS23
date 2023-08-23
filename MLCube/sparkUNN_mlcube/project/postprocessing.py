@@ -38,12 +38,3 @@ def prepare_predictions(e, input_path="/data", output_path="/results/final_preds
         nib.Nifti1Image(p, img.affine, header=img.header),
         os.path.join(os.path.join(output_path, fname + ".nii.gz")),
     )
-if __name__ == "__main__":
-
-    os.makedirs("/results/final_preds")
-    preds = sorted(glob(f"/results/predictions*"))
-    examples = list(zip(*[sorted(glob(f"{p}/*.npy")) for p in preds]))
-    print("Preparing final predictions")
-    for e in examples:
-        prepare_preditions(e)
-    print("Finished!")

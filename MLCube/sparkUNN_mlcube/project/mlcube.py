@@ -14,7 +14,7 @@ def infer(
     output_path: str = typer.Option(..., "--output_path"),
     # Provide additional parameters as described in the mlcube.yaml file
     # e.g. model weights:
-    ckpt_path: str = typer.Option(..., "--ckpt_path")
+    ckpts_path: str = typer.Option(..., "--ckpt_path")
 ):
     with open(parameters_file) as f:
         parameters = yaml.safe_load(f)
@@ -23,7 +23,7 @@ def infer(
     parameters["prep_results"] = data_path
     parameters["data"] = os.path.join(data_path, "12_3d")
     parameters["results"] = output_path
-    parameters['ckpt_path'] = ckpt_path
+    parameters['ckpts_path'] = ckpts_path
 
     run_inference(data_path, parameters)
 
