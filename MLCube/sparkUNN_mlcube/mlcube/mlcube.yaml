@@ -22,7 +22,7 @@ tasks:
       inputs: {
         data_path: data/,
         parameters_file: parameters.yaml,
-        ckpt_path: additional_files/unn_weights_ft.ckpt,
+        ckpts_path: additional_files/checkpoints/,
         # Feel free to include other files required for inference.
         # These files MUST go inside the additional_files path.
         # e.g. model weights

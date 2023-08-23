@@ -30,7 +30,7 @@ seed: null # "Random seed
 skip_first_n_eval: 0 # Skip the evaluation for the first n epochs.
 # ckpt_path: null # Path for loading checkpoint #?
 # ckpt_store_dir: $results # Path for saving checkpoint #?
-fold: 2 # Fold number
+# fold: 2 # Fold number
 patience: 100 # Early stopping patience
 batch_size: 2 # Batch size
 val_batch_size: 4 # Validation batch size
