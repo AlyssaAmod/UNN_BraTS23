@@ -132,7 +132,6 @@ class NNUnet(pl.LightningModule):
             else:
                 final_pred = softmax(final_pred, axis=0)
 
-            final_pred = self.to_lbl(final_pred)
             self.save_mask(final_pred)
             
 
@@ -298,42 +297,13 @@ class NNUnet(pl.LightningModule):
             scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 4096, eta_min=8e-5)
             return {"optimizer": optimizer, "monitor": "val_loss", "lr_scheduler": {"scheduler": scheduler, "interval": 'step'}}
         return {"optimizer": optimizer, "monitor": "val_loss"}
-    
-    def to_lbl(self, pred):
-        enh = pred[2]
-
-        pad = pred == 0.5
-        pred[pad==True] = 0
-
-        c1, c2, c3 = pred[0] > 0.4, pred[1] > 0.35, pred[2] > 0.375
-
-        pred = (c1 > 0).astype(np.uint8)
-        pred[(c2 == False) * (c1 == True)] = 2 
-        pred[(c3 == True) * (c1 == True)] = 3
-
-        components, n = label(pred == 3)
-        for et_idx in range(1, n + 1):
-            _, counts = np.unique(pred[components == et_idx], return_counts=True)
-            if 1 < counts[0] and counts[0] < 4 and np.mean(enh[components == et_idx]) < 0.9:
-                pred[components == et_idx] = 1
-        
-        et = pred == 3
-        if 0 < et.sum() and et.sum() < 5 and np.mean(enh[et]) < 0.9:
-            pred[et] = 1
-
-        pred = np.transpose(pred, (2, 1, 0)).astype(np.uint8)
-        return pred
 
     def save_mask(self, pred):
         if self.test_idx == 0:
             data_path = get_data_path(self.args)
             self.test_imgs, _ = get_test_fnames(self.args, data_path)
         fname = os.path.basename(self.test_imgs[self.test_idx]).replace("_x", "")
-        outfile = os.path.join(self.args["results"], f"{fname}.nii.gz")
-        img = os.path.join(self.args["data"], fname, f"{fname}-t1n.nii.gz")
-        img_load = nib.load(img)
-        nib.save(nib.Nifti1Image(pred,img_load.affine, header=img_load.header),outfile)
-        # np.save(os.path.join(self.save_dir, fname), pred, allow_pickle=False)
+        np.save(os.path.join(self.save_dir, fname), pred, allow_pickle=False)
         self.test_idx += 1
 
     def get_train_data(self, batch):

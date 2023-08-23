@@ -2,6 +2,7 @@ from data_preparation import prepare_dataset
 from main import main
 from data_preprocessing.preprocessor import Preprocessor
 from utils.utils import get_task_code
+from postprocessing import prepare_predictions, to_lbl
 
 import os
 import torch

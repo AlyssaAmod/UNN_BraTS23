@@ -4,11 +4,11 @@ authors:
  - {name: Team UNN}
 
 platform:
-  accelerator_count: 0
+  accelerator_count: 1
 
 docker:
   # Image name
-  image: bratsafrica:testimage # docker.synapse.org/syn51705606/
+  image: docker.synapse.org/syn51705606/bratsafrica:testimage 
   # Docker build context relative to $MLCUBE_ROOT. Default is `build`.
   build_context: "../project"
   # Docker file name within docker build context, default is `Dockerfile`.
