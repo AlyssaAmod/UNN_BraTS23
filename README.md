@@ -1,22 +1,76 @@
 # MICCAI 2023 Brain Tumour Segmentation Challenge: Team UNN *(Umuntu Ngumuntu Ngabantu)*
-## Brain Tumor segmentation introduction
+## Using this repository
+This repository contains newly developed code as well as slightly modified version of the Optimised U-Net model as found in the Nvidia Deep Learning Examples repository for [nnUnet](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Segmentation/nnUNet)
 
+BraTS2023 final submission only uses the Optimised Unet framework. 4 main models were trained and evaluated:
+    1. training with only SSA data
+    2. training with only BraTS-GLIOMA data
+    3. training with SSA and BraTS-GLIOMA data combined
+    3. training with only BraTS-GLIOMA data and then fine-tuning the model with SSA data
 
+The newly developed code was created in order to further explore the effect of additional data augmentations on the generalisability of this framework. The aim was also to simplify the process and reduce computational capacity such that the model can be run from low resource settings possibly using open source computing infrastructure. These are found in the folder scripts, as well as within several notebooks. Due to time, resource and capacity contraints, this was not completed in the 2 month period of the challenge. 
+## Scripts in this repository
+Team UNN code: All folders except for OptiNet contain original code authored by SPARK team UNN. Below are some of the main scripts.
+### Notebooks
+Below outlines key notebooks created for use during EDA, script development and evaluations. 
+```
+├──notebooks
+  Explorations and code used for challenge submission
+    └──data-exploration.ipynb
+        Key for initial EDA of the multimodal data provided for the BraTS2023 challenge. Provides visuals of all subjects across all planes (when N is 60)
+    └──inference_opti.ipynb
+        Final steps of inference for validation submissions. Contains postprocessing steps taken and visualisations of predicted segments
+    └──prepdata-exploration.ipynb
+        Used to double check data prep script created
+  Explorations for modifying OptiNet to allow for more generalised training to SSA data:
+    └──transforms-exploration.ipynb
+        Initial exploration of potential transforms functions, and working with torchio subjects
+        Requires local copy of data
+        └──transforms-exploration_SynapseData.ipynb
+        Visually explore the effects of trasformations on the original data. To assist with determining which additional augmentations are likely to improve model.
+        Requires synapse login.
+    └──transforms-exploration_MRS+SNP.ipynb
+        Exploring augmentations from literature that directly apply formula to volume intensities
+        Requires synapse login
+    └──dataloader_exploration.ipynb
+        Used for checking data loader function
+    └──usefulFx.ipynb
+  └─playground
+        └──Augmentations_Efficient.ipynb
+        └──test_scripts.ipynb
+  └─results
+    These files are used for comparing validation submissions to determine differences in model performance.
+        └──Box_Whisker.ipynb
+        └──inference_monai.ipynb
+            This code is to be used in conjunction with the team UNN created training scripts
+        └──inference_opti.ipynb
+            This is the code used to generate final nifti files for submission during validation phase
+        └──predictions_SynapseData.ipynb
+        └──Statistics.ipynb
+        └──Statistics_F_statistic.ipynb
+```
+### Modified Model Training
+1. data_prep : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
 
-## Different types of brain tumors
+2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
 
+3. training script: The training and validation data from the data_loader are passed to the trainer, respectively.
 
-## U-Net Architecture (image)
-
-
-## Our model Architecture (image)
-
-    
-
-## Running these scripts
-### Comput Canada
+4. Inference: the trained model is used to make predictions (i.e segmentating the brain tumor). 
+```
+|--scripts
+    |--This folder contains all scripts created for modified training procedures. Attempts to successfully deploy OptiNet 2022 model with the code is currently unsuccessful
+    |--data_preparation_OptiNet.py
+        |--duplication of Futrega et al. data preparation code as found in their notebook "Brats22.ipynb"
+    |--trainer.py
+        |--main call to run all trainig procedures.
+        |--calls on other scripts within folder
+        |--monai_functions.py defines all functions used for training and validation. This script calls helper functions from the utils folder.
+    |-- inference.py
+        |--incomplete, refer to notebook playground
+```
+### Compute Canada
 **Compute Canada ~bashrc aliases for quick access:**
-
 `
 scr="cd /scratch/guest187"
 data="cd /scratch/guest187/Data"
@@ -27,76 +81,6 @@ mon="cd /home/guest187/BraTS23_SSA/train/MON_UNet"
 gh="cd /home/guest187/GitRepo_Brats23/UNN_BraTS23"
 ghON="cd /home/guest187/GitRepo_Brats23/nnUnet"
 `
-### Main Scripts
-1. data_prep : is an independent script, meant to only be run once to preprocess (and save) all raw data provided from the challenge, so that the data is ready to be put into dataloaders
-
-2. data_loader : reads from data_class and data_transforms, gets the data ready for model (will be read in from training script)
-
-3. training script: The training and validation data from the data_loader are passed to the trainer, respectively.
-
-4. Inference: the trained model is used to make predictions (i.e segmentating the brain tumor). 
-
-## Project Structure
-------------
-├── Adewole et al_The Brain Tumor Segmentation (BraTS) Challenge 2023.pdf
-├── Background.md
-├── LICENSE
-├── notebooks
-│   ├── data-exploration.ipynb
-│   ├── test_scripts.ipynb
-│   ├── transforms-exploration.ipynb
-│   └── usefulFx.ipynb
-├── playground
-│   ├── data_prep-augs
-│   │   ├── data_prepFakeSSA.py
-│   │   ├── prepoc_augs
-│   │   │   ├── Augs.py
-│   │   │   └── stdPreproc.py
-│   │   └── UNN_datapreparation_v0.py
-│   ├── modelZoo_playground
-│   │   ├── model.py
-│   │   ├── nnunet
-│   │   │   ├── brats22_model.py
-│   │   │   ├── loss.py
-│   │   │   ├── metrics.py
-│   │   │   ├── nn_unet.py
-│   │   │   └── nnunet_trainer.py
-│   │   ├── optimized_U-net.py
-│   │   └── training.py
-│   ├── training_fn_playground.py
-│   └── visualisations.py
-├── README.md
-├── reports
-│   ├── BraTS-SSA-00008-000.png
-│   ├── BraTS-SSA-00008-000_seg.png
-│   ├── BraTS-SSA-00008-000_t1c.png
-│   ├── BraTS-SSA-00008-000_t1n.png
-│   ├── BraTS-SSA-00008-000_t2f.png
-│   ├── BraTS-SSA-00008-000_t2w.png
-│   ├── t1c.png
-│   ├── t1n.png
-│   ├── t2f.png
-│   └── transforms.py
-├── results
-│   └── optiNet_basline.md
-└── scripts
-    ├── data_class.py
-    ├── data_loader.py
-    ├── data_preparation
-    │   ├── data_preparation_OptiNet.py
-    │   └── data_preparation_UNN.py
-    ├── data_transforms.py
-    ├── modelZoo_monai.py
-    ├── monai_trainer.py
-    ├── MONAI_Unet_Brats.ipynb
-    ├── salloc_InteractiveJob.sh
-    └── utils
-        ├── logger.py
-        └── utils.py
-
-
-------------
-
 ## Folder & File Structure Requirements
 ### Training & Validation Data
 Total file: Training data
@@ -134,70 +118,4 @@ Segmentations should be contained in a zip or tarball archive and upload this to
 To submit click: File Tools > Submit File to Challenge
 There are 5 queues and as a team we are limited to 2 submissions per day
 
-## Challenge Overview
-### Data
-    - data sets from adult populations collected through a collaborative network of imaging centres in Africa
-    - collection of pre-operative glioma data comprising of multi-parametric (mpMRI) routine clinical scans acquired as part of standard clinical care from multiple institutions and different scanners using conventional brain tumor imaging protocols
-    - differences in imaging systems and variations in clinical imaging protocols = vastly heterogeneous image quality
-    - ground truth annotations were approved by expert neuroradiologists and reviewed by board-certified radiologists with extensive experience in the field of neuro-oncology
-    **training (70%), validation (10%), testing (20%)**
-    - training data provided with associated ground truth labels, and validation data without any associated ground truth
-    - image volumes of:
-        - T1-weighted **(T1)**
-        - post gadolinium (Gd) contrast T1-weighted **(T1Gd)**
-        - T2-weighted **(T2)**
-        - T2 Fluid Attenuated Inversion Recovery **(T2-FLAIR)**
-    
-### Standardised BraTS **pre-processing workflow** used
-    - identical with pipeline from BraTS2017-2022 - publicly available
-    - conversion of DICOM to files to NIfTI file format --  strips accompanying metadata from the images and removes all Protected Health Information from DICOM headers
-    - cor-registration to the same anatomical template (SRI24)
-     - resampling to uniform isotropic resolution (1mm^2)
-     - skull stripping (uses DL approach) --  mitigates potential facial reconstruction/recognition of the patient
-        
-### Generation of **ground truth labels**
-    - volumes segmented using STAPLE fusion of previous top-ranked BraTS algorithms (nnU-Net, DeepScan and DeepMedic)
-    - segmented images refined manually by volunteer trained radiology experts of varying rank and experience
-    - then two senior attending board-certified radiologists with 5 or more years experience reviewed the segmentations
-    - iterative process until the approvers found the refined tumor sub-region segmentations accceptable for public release and challenge conduction
-    - finally approved by experienced board-certified attending neuro-radiologists with more than 5 years experience in interpreting glioma brain MRI
-        
-    - **sub-regions** -- these are image-based and do not reflect strict biologic entities
-        - enhancing tumor (ET) = tumor segments exhibiting a discernible rise in T1 signal on post-contrast images compared to pre- 
-          contrast images
-        - non-enhancing tumor core (NETC) = This classification comprises all segments of the tumor core (the area typically removed by 
-          a surgeon) that show no enhancement.
-        - surrounding non-enhancing flair hyperintensity (SNFH) = This refers to the complete extent of FLAIR signal abnormality 
-          surrounding the tumor, which excludes any regions that are part of the tumor core. 
 
-        Therefore, the sub-regions need to be converted back to the original classes:
-        - NCR = necrotic tumor core
-        - ED = peritumoral edematous tissue
-        - ET = enhancing tumor
-
-        
-        
-### Important information
-#### Training & Val
-    - training data has ground truths available
-    - validation data (released 3 weeks after training data) does not have any ground truth
-    - ***NB: challenge participants can supplement the data set with additional public and/or private glioma MRI data for training algorithms***
-        - supplemental data set must be explicitly and thoroughly described in the methods of submitted manuscripts
-        - required to report results using only the BraTS2023 glioma data and results that include the supplemental data and discuss potential result differences
-    - for submission participants are required to package their developed approach in an MLCube container following provided in the Synapse platform - Cube containers are automatically generated by GaNDLF and will be used to evaluate all submissions through the MedPerf platform
-    
-#### Evaluation metrics
-    - Dice Similarity Coefficient  
-    - 95% Hausdorff distance (as opposed to standard HD in order to avoid outliers having too much weight)
-    - precision (to complement sensitivity)
-
-#### Other
-    - submitted algorithms will be ranked based on the generated metric results on the test cases by computing the summation of their ranks across the average of the metrics described above as a univariate overall summary measure
-    - outcome will be plotted via an augmented version of radar plot - to visualise the results
-    - missing results on test cases or if an algorithm fails to produce a result metric for a specific test case the metric will be set to its worst possible value (e.g. 0 for DSC) 
-    - uncertainties in rankings will be assessed using permutational analyses“Performance for the segmentation task will be assessed based on relative performance of each team on each tumor tissue class and for each segmentation measure
-    - multiple submissions to the online evaluation platforms will be allowed 
-    - top ranked teams in validation phase will be invited to prepare their slides for a short oral presentation of their method during the BraTS challenge at MICCAI 2023
-    - “all participants will be evaluated and ranked on the same unseen testing data, which will not be made available to the participants, after uploading their containerized method in the evaluation platforms
-    - final top ranked teams will be announced at MICCAI 2023 (monetary prizes)
-    - participating African teams with best rank will receive Lacuna Equity & Health Prizes (limited to BraTS-Africa BrainHack teams)
